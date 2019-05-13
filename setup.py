@@ -5,8 +5,8 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="miner2",
-    version="0.0.1",
-    author="Adrian de Lomana",
+    version="0.0.4",
+    author="Adrian Lopez Garcia de Lomana",
     author_email="alomana@systemsbiology.org",
     description="Python 3 package based on MINER.",
     long_description=long_description,
