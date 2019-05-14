@@ -3,16 +3,22 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+PACKAGE_DATA = {
+    'miner2': ['data/*']
+    }
+    
 setuptools.setup(
     name="miner2",
-    version="0.0.4",
+    version="0.0.5",
     author="Adrian Lopez Garcia de Lomana",
     author_email="alomana@systemsbiology.org",
-    description="Python 3 package based on MINER.",
+    description="A newer version of MINER.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/adelomana/miner2",
-    packages=setuptools.find_packages(),
+    packages=['miner2'],
+    install_requires = setuptools.find_packages(),
+    include_package_data=True, package_data=PACKAGE_DATA,
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Console",

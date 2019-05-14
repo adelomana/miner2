@@ -1,3 +1,3 @@
 # miner2
 
-This is an example of documentation.
+A newer version of MINER.
