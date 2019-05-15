@@ -25,6 +25,7 @@ def cluster(expressionData,minNumberGenes = 6,minNumberOverExpSamples=4,maxSampl
         genesMapped = []
         bestMapped = []
 
+        print(random_state)
         pca = sklearn.decomposition.PCA(10,random_state=random_state)
         principalComponents = pca.fit_transform(df.T)
         principalDf = pandas.DataFrame(principalComponents)
