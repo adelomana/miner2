@@ -31,20 +31,55 @@ def cluster(expressionData,minNumberGenes = 6,minNumberOverExpSamples=4,maxSampl
         principalDf = pandas.DataFrame(principalComponents)
         principalDf.index = df.columns
 
-        #hydra=multiprocessing.pool.Pool(numCores)
-        #genesMappedParallel=hydra.map(geneMapper,numpy.arange(10))
+        for i in range(10):
+            pearson = pearson_array(numpy.array(df),numpy.array(principalDf[i]))
+            if len(pearson) == 0:
+                continue
+            print('pearson',pearson.shape,type(pearson),numpy.mean(pearson))
+            print('percentile',numpy.percentile(pearson,95),0.1)
+            print()
+            highpass = max(numpy.percentile(pearson,95),0.1)
+            lowpass = min(numpy.percentile(pearson,5),-0.1)
+            cluster1 = numpy.array(df.index[numpy.where(pearson>highpass)[0]])
+            cluster2 = numpy.array(df.index[numpy.where(pearson<lowpass)[0]])
+
+            for clst in [cluster1,cluster2]:
+                pdc = recursiveAlignment(clst,expressionData=df,minNumberGenes=minNumberGenes)
+                if len(pdc)==0:
+                    continue
+                elif len(pdc) == 1:
+                    genesMapped.append(pdc[0])
+                elif len(pdc) > 1:
+                    for j in range(len(pdc)-1):
+                        if len(pdc[j]) > minNumberGenes:
+                            genesMapped.append(pdc[j])
+            print(i,cluster1.shape,cluster2.shape,highpass,lowpass,len(genesMapped))
+
+        print('final',len(genesMapped))
+
+
+        '''
+        # explore PCs in parallel
+        pcs=numpy.arange(10)
+        tasks=[[df,principalDf,element,minNumberGenes] for element in pcs]
+        hydra=multiprocessing.pool.Pool(numCores)
+        genesMappedParallel=hydra.map(geneMapper,tasks)
+        
+        
         genesMappedParallel=[]
         for i in range(10):
-            task=[df,principalDf,i]
+            task=[df,principalDf,i,minNumberGenes]
             instance=geneMapper(task)
             genesMappedParallel.append(instance)
+        
         for element in genesMappedParallel:
             for gene in element:
                 genesMapped.append(gene)
-
-        print(len(genesMapped))
+        print('genesMapped',len(genesMapped))
         print('completed')
         sys.exit()
+
+        '''
 
         allGenesMapped.extend(genesMapped)
         try:
@@ -60,7 +95,7 @@ def cluster(expressionData,minNumberGenes = 6,minNumberOverExpSamples=4,maxSampl
             tmpCluster = expressionData.loc[genesMapped[ix],:]
             tmpCluster[tmpCluster<expressionThreshold] = 0
             tmpCluster[tmpCluster>0] = 1
-            sumCluster = numpy.array(np.sum(tmpCluster,axis=0))
+            sumCluster = numpy.array(numpy.sum(tmpCluster,axis=0))
             numHits = numpy.where(sumCluster>0.333*len(genesMapped[ix]))[0]
             bestMapped.append(numHits)
             if len(numHits)>minNumberOverExpSamples:
@@ -104,6 +139,7 @@ def geneMapper(task):
     df=task[0]
     principalDf=task[1]
     i=task[2]
+    minNumberGenes=task[3]
 
     pearson = pearson_array(numpy.array(df),numpy.array(principalDf[i]))
     highpass = max(numpy.percentile(pearson,95),0.1)
@@ -121,6 +157,8 @@ def geneMapper(task):
             for j in range(len(pdc)-1):
                 if len(pdc[j]) > minNumberGenes:
                     genesMapped.append(pdc[j])
+
+    print(i,cluster1.shape,cluster2.shape,highpass,lowpass,len(genesMapped))
 
     return genesMapped
 
@@ -202,12 +240,6 @@ def iterativeCombination(dict_,key,iterations=25):
     return revised
 
 def pearson_array(array,vector):    
-    #r = (1/n-1)sum(((x-xbar)/sx)((y-ybar)/sy))
-
-    '''
-    Description of function
-    '''
-    
     ybar = numpy.mean(vector)
     sy = numpy.std(vector,ddof=1)    
     yterms = (vector-ybar)/float(sy)
