@@ -18,6 +18,7 @@ def correctBatchEffects(df):
 def identifierConversion(expressionData):
     
     conversionTableFile = resource_filename(Requirement.parse("miner2"), 'miner2/data/identifier_mappings.txt')
+    print('\t\t\t\t******** ',conversionTableFile)
     idMap=pandas.read_csv(conversionTableFile,sep='\t')
     
     genetypes = list(set(idMap.iloc[:,2]))
