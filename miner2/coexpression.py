@@ -5,7 +5,6 @@ import multiprocessing, multiprocessing.pool
 def cluster(expressionData,minNumberGenes = 6,minNumberOverExpSamples=4,maxSamplesExcluded=0.50,random_state=12,overExpressionThreshold=80,numCores=1):
 
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t coexpression"))
-    print(numCores)
 
     df = expressionData.copy()
     
@@ -31,20 +30,30 @@ def cluster(expressionData,minNumberGenes = 6,minNumberOverExpSamples=4,maxSampl
         principalDf = pandas.DataFrame(principalComponents)
         principalDf.index = df.columns
 
+        print('df',type(df),df.shape,)
+
         for i in range(10):
             pearson = pearson_array(numpy.array(df),numpy.array(principalDf[i]))
             if len(pearson) == 0:
                 continue
             print('pearson',pearson.shape,type(pearson),numpy.mean(pearson))
             print('percentile',numpy.percentile(pearson,95),0.1)
-            print()
+
             highpass = max(numpy.percentile(pearson,95),0.1)
             lowpass = min(numpy.percentile(pearson,5),-0.1)
             cluster1 = numpy.array(df.index[numpy.where(pearson>highpass)[0]])
             cluster2 = numpy.array(df.index[numpy.where(pearson<lowpass)[0]])
 
+            cluster1.sort() # ALO, required for reproducibility
+            cluster2.sort() # ALO, requred for reproducibility
+
+            #print('cluster1',len(cluster1),cluster1[:10])
+
             for clst in [cluster1,cluster2]:
+                print('within clst',len(clst),clst[:5])
                 pdc = recursiveAlignment(clst,expressionData=df,minNumberGenes=minNumberGenes)
+                print('pdc',len(pdc))
+                sys.exit()
                 if len(pdc)==0:
                     continue
                 elif len(pdc) == 1:
@@ -54,6 +63,7 @@ def cluster(expressionData,minNumberGenes = 6,minNumberOverExpSamples=4,maxSampl
                         if len(pdc[j]) > minNumberGenes:
                             genesMapped.append(pdc[j])
             print(i,cluster1.shape,cluster2.shape,highpass,lowpass,len(genesMapped))
+            sys.exit()
 
         print('final',len(genesMapped))
 
@@ -133,42 +143,17 @@ def combineClusters(axes,clusters,threshold=0.925):
 
     return revisedClusters
 
-def geneMapper(task):
-
-    genesMapped=[]
-    df=task[0]
-    principalDf=task[1]
-    i=task[2]
-    minNumberGenes=task[3]
-
-    pearson = pearson_array(numpy.array(df),numpy.array(principalDf[i]))
-    highpass = max(numpy.percentile(pearson,95),0.1)
-    lowpass = min(numpy.percentile(pearson,5),-0.1)
-    cluster1 = numpy.array(df.index[numpy.where(pearson>highpass)[0]])
-    cluster2 = numpy.array(df.index[numpy.where(pearson<lowpass)[0]])
-    
-    for clst in [cluster1,cluster2]:
-        pdc = recursiveAlignment(clst,expressionData=df,minNumberGenes=minNumberGenes)
-        if len(pdc)==0:
-            continue
-        elif len(pdc) == 1:
-            genesMapped.append(pdc[0])
-        elif len(pdc) > 1:
-            for j in range(len(pdc)-1):
-                if len(pdc[j]) > minNumberGenes:
-                    genesMapped.append(pdc[j])
-
-    print(i,cluster1.shape,cluster2.shape,highpass,lowpass,len(genesMapped))
-
-    return genesMapped
-
-def decompose(geneset,expressionData,minNumberGenes=6): 
+def decompose(geneset,expressionData,minNumberGenes=6):
+    print('len(geneset) from decompose',len(geneset))
     fm = FrequencyMatrix(expressionData.loc[geneset,:])
+    print('fm from decompose',type(fm))
     tst = numpy.multiply(fm,fm.T)
     tst[tst<numpy.percentile(tst,80)]=0
     tst[tst>0]=1
     unmix_tst = unmix(tst)
+    
     unmixedFiltered = [i for i in unmix_tst if len(i)>=minNumberGenes]
+    print('unmixedFiltered from decompose',len(unmixedFiltered))
     return unmixedFiltered
 
 def decomposeDictionaryToLists(dict_):
@@ -224,6 +209,35 @@ def getAxes(clusters,expressionData):
         axes[key] = principalComponents.ravel()
     return axes
 
+def geneMapper(task):
+
+    genesMapped=[]
+    df=task[0]
+    principalDf=task[1]
+    i=task[2]
+    minNumberGenes=task[3]
+
+    pearson = pearson_array(numpy.array(df),numpy.array(principalDf[i]))
+    highpass = max(numpy.percentile(pearson,95),0.1)
+    lowpass = min(numpy.percentile(pearson,5),-0.1)
+    cluster1 = numpy.array(df.index[numpy.where(pearson>highpass)[0]])
+    cluster2 = numpy.array(df.index[numpy.where(pearson<lowpass)[0]])
+    
+    for clst in [cluster1,cluster2]:
+        pdc = recursiveAlignment(clst,expressionData=df,minNumberGenes=minNumberGenes)
+        if len(pdc)==0:
+            continue
+        elif len(pdc) == 1:
+            genesMapped.append(pdc[0])
+        elif len(pdc) > 1:
+            for j in range(len(pdc)-1):
+                if len(pdc[j]) > minNumberGenes:
+                    genesMapped.append(pdc[j])
+
+    print(i,cluster1.shape,cluster2.shape,highpass,lowpass,len(genesMapped))
+
+    return genesMapped
+
 def iterativeCombination(dict_,key,iterations=25):    
     initial = dict_[key]
     initialLength = len(initial)
@@ -266,16 +280,25 @@ def reconstruction(decomposedList,expressionData,threshold=0.925):
     return recombine
 
 def recursiveAlignment(geneset,expressionData,minNumberGenes=6):
+    print('geneset from recursiveAlignment',len(geneset),geneset[:5])
+
     recDecomp = recursiveDecomposition(geneset,expressionData,minNumberGenes)
+    print('recDecomp',type(recDecomp),len(recDecomp))
+    
     if len(recDecomp) == 0:
         return []
     reconstructed = reconstruction(recDecomp,expressionData)
+    print('reconstructed',type(reconstructed),len(reconstructed))
+
     reconstructedList = [reconstructed[i] for i in list(reconstructed.keys()) if len(reconstructed[i])>minNumberGenes] # ALO: changed to list becasue of Py3
+    print('reconstructedList',len(reconstructedList))
+
     reconstructedList.sort(key = lambda s: -len(s))
     return reconstructedList
 
 def recursiveDecomposition(geneset,expressionData,minNumberGenes=6):
-    unmixedFiltered = decompose(geneset,expressionData,minNumberGenes=minNumberGenes)   
+    unmixedFiltered = decompose(geneset,expressionData,minNumberGenes=minNumberGenes)
+    print('unmixedFiltered from recursiveDecomposition',len(unmixedFiltered))
     if len(unmixedFiltered) == 0:
         return []
     shortSets = [i for i in unmixedFiltered if len(i)<50]
@@ -294,6 +317,7 @@ def unmix(df,iterations=25,returnAll=False):
     
     for iteration in range(iterations):
         sumDf1 = df.sum(axis=1)
+        print(iteration,'sumDf1',sum(sumDf1))
 
         maxSum=sumDf1.idxmax() # ALO: changed to idxmax
 
@@ -303,6 +327,7 @@ def unmix(df,iterations=25,returnAll=False):
         blockSum = block.sum(axis=1)
         coreBlock = list(blockSum.index[numpy.where(blockSum>=numpy.median(blockSum))[0]])
         remainder = list(set(df.index)-set(coreBlock))
+        print('appended coreBlock',len(coreBlock))
         frequencyClusters.append(coreBlock)
         if len(remainder)==0:
             return frequencyClusters
@@ -311,4 +336,10 @@ def unmix(df,iterations=25,returnAll=False):
         df = df.loc[remainder,remainder]
     if returnAll is True:
         frequencyClusters.append(remainder)
+
+    a=[len(element) for element in frequencyClusters]
+    print('frequencyClusters from unmix',len(frequencyClusters),a)
+
+    
+    
     return frequencyClusters

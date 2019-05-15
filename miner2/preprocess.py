@@ -16,6 +16,8 @@ def correctBatchEffects(df):
     return zscoredExpression
 
 def identifierConversion(expressionData):
+
+    print('arrived to indetifierConversion',numpy.mean(expressionData.iloc[:,0]))
     
     conversionTableFile = resource_filename(Requirement.parse("miner2"), 'miner2/data/identifier_mappings.txt')
     print('\t\t\t\t******** ',conversionTableFile)
@@ -42,8 +44,11 @@ def identifierConversion(expressionData):
                 state = "transpose"
                 gtype = geneType
                 continue
-    
+
+    print()
+    print(state)
     mappedGenes = bestMatch
+    mappedGenes.sort() ### ALO this new line in miner2 is surprisingly important for reproducibility. Otherwise expressionData varies in last digits of floats and every thing down the road changes slightly
     subset = idMap[idMap.iloc[:,2]==gtype] 
     subset.index = subset.iloc[:,1]
 
@@ -54,7 +59,12 @@ def identifierConversion(expressionData):
         expressionData = expressionData.T
         
     try:
+        print('before mapping',numpy.mean(expressionData.iloc[:,0]))
+        print(len(mappedGenes),mappedGenes[:10])
+        print('going into conversion...')
         convertedData = expressionData.loc[mappedGenes,:]
+        print('after conversion',numpy.mean(convertedData.iloc[:,0]))
+        print()
     except:
         convertedData = expressionData.loc[numpy.array(mappedGenes).astype(int),:]
     
@@ -65,34 +75,69 @@ def identifierConversion(expressionData):
     
     newIndex = list(subset.loc[mappedGenes,"Preferred_Name"])
     convertedData.index = newIndex
+
+    print('after mapped genes',numpy.mean(convertedData.iloc[:,0]))
     
     duplicates = [item for item, count in Counter(newIndex).items() if count > 1]
     singles = list(set(convertedData.index)-set(duplicates))
-    
+
+    ### ALO these two new lines in miner2 are surprisingly important for reproducibility. Otherwise expressionData varies in last digits of floats and every thing down the road changes slightly and reproducibility gets compromised
+    duplicates.sort()
+    singles.sort()
+
     corrections = []
+
+    print('duplicates',type(duplicates),len(duplicates),duplicates)
+    print('singles',type(singles),len(singles))
+    
     for duplicate in duplicates:
         dupData = convertedData.loc[duplicate,:]
         firstChoice = pandas.DataFrame(dupData.iloc[0,:]).T
         corrections.append(firstChoice)
+
+    print('corrections',type(corrections),len(corrections),type(corrections[0]))
+
+    print('right before corrections',numpy.mean(convertedData.iloc[:,0]))
     
-    if len(corrections) > 0:        
+    if len(corrections) > 0:
+        print('there are corrections')
         correctionsDf = pandas.concat(corrections,axis=0)
         uncorrectedData = convertedData.loc[singles,:]
-        convertedData = pandas.concat([uncorrectedData,correctionsDf],axis=0)    
-    
+        print('\t before concat',numpy.mean(convertedData.iloc[:,0]))
+        convertedData = pandas.concat([uncorrectedData,correctionsDf],axis=0)
+        print('\t during corrections',numpy.mean(convertedData.iloc[:,0]))
+        
+    print('right after corrections',numpy.mean(convertedData.iloc[:,0]))
+    print()
+              
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t {} out of {} gene names converted to ENSEMBL IDs".format(convertedData.shape[0],expressionData.shape[0])))
+    
     
     return convertedData, conversionTable
 
 def main(filename):
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data reading"))
     rawExpression = readFileToDf(filename)
+
+    firstPatient = rawExpression.iloc[:,0]
+    print('raw',type(firstPatient),len(firstPatient),numpy.mean(firstPatient))
+    
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data recovered: {} features by {} samples".format(rawExpression.shape[0],rawExpression.shape[1])))
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data transformation"))
+
+    
     rawExpressionZeroFiltered = removeNullRows(rawExpression)
     zscoredExpression = correctBatchEffects(rawExpressionZeroFiltered)
+
+    firstPatient = zscoredExpression.iloc[:,0]
+    print('zscore',type(firstPatient),len(firstPatient),numpy.mean(firstPatient))
+    
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t gene ID conversion"))
     expressionData, conversionTable = identifierConversion(zscoredExpression)
+
+    firstPatient = expressionData.iloc[:,0]
+    print('expressionData',type(firstPatient),len(firstPatient),numpy.mean(firstPatient))
+    
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t working expression data: {} features by {} samples".format(expressionData.shape[0],expressionData.shape[1])))
     return expressionData, conversionTable
 

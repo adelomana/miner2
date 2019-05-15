@@ -1,4 +1,4 @@
-import sys,os,dill,numpy
+import sys,os,dill
 import matplotlib,matplotlib.pyplot
 
 matplotlib.rcParams.update({'font.size':18,'font.family':'Arial','xtick.labelsize':14,'ytick.labelsize':14})
@@ -17,11 +17,14 @@ if os.path.exists(resultsDir) == False:
     os.mkdir(resultsDir+'figures')
     os.mkdir(resultsDir+'info')
 
+"""
 # STEP 0: load the data
 expressionData, conversionTable = miner2.preprocess.main(expressionFile)
 
-"""
 individual_expression_data = [expressionData.iloc[:,i] for i in range(50)]
+print(individual_expression_data,len(individual_expression_data),numpy.mean(individual_expression_data))
+
+"""
 matplotlib.pyplot.boxplot(individual_expression_data)
 matplotlib.pyplot.title("Patient expression profiles")
 matplotlib.pyplot.ylabel("Relative expression")
@@ -53,12 +56,12 @@ figureName=resultsDir+'figures/singlePatient.pdf'
 matplotlib.pyplot.tight_layout()
 matplotlib.pyplot.savefig(figureName)
 matplotlib.pyplot.clf()
-"""
 
-#dill.dump_session(resultsDir+'info/bottle.dill')
+dill.dump_session(resultsDir+'info/bottle.dill')
+"""
     
 # STEP 1: clustering
-#dill.load_session(resultsDir+'info/bottle.dill')
+dill.load_session(resultsDir+'info/bottle.dill')
 
 minNumberGenes = 6
 numCores = 8
