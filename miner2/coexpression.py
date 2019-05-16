@@ -53,7 +53,7 @@ def cluster(expressionData,minNumberGenes = 6,minNumberOverExpSamples=4,maxSampl
             for clst in [cluster1,cluster2]:
                 print('within clst',len(clst),clst[:5])
                 pdc = recursiveAlignment(clst,expressionData=df,minNumberGenes=minNumberGenes)
-                print('pdc',len(pdc))
+                print('pdc final',len(pdc))
                 sys.exit()
                 if len(pdc)==0:
                     continue
@@ -317,18 +317,70 @@ def unmix(df,iterations=25,returnAll=False):
     frequencyClusters = []
     
     for iteration in range(iterations):
-        sumDf1 = df.sum(axis=1)
-        print(iteration,'sumDf1',sum(sumDf1))
 
-        maxSum=sumDf1.idxmax() # ALO: changed to idxmax
+
+        print('df.shape',df.shape)
+        #print('df.head',df.head())
+
+        
+        sumDf1 = df.sum(axis=1)
+        
+        #print('sumDf1',sumDf1.head())
+        print('iteration',iteration,'sumDf1',type(sumDf1),sumDf1.shape,sum(sumDf1))
+
+        d=sumDf1.to_dict()
+        #print('sumDf1.index to dictionary',toDict)
+        s = [(k, d[k]) for k in sorted(d, key=d.get, reverse=True)]
+
+        count=0
+        for k, v in s:
+            print('\t sorted dictionary',k, v)
+            count=count+1
+            if count == 10:
+                break
+
+        #sys.exit()
+
+        alternative=sumDf1.idxmax() # ALO: changed to idxmax
+        maxSum=numpy.argmax(sumDf1)
+        print('maxSum',maxSum)
+        print('alternative',alternative)
+
+        selected=sumDf1[sumDf1.values == sumDf1.values.max()]
+        chosen=selected.index.tolist()
+        print('chosen',chosen)
+        if len(chosen) > 1:
+            print('dilemma found')
+            chosen.sort()
+            maxSum=chosen[0]
+            print('dilemma solved with',maxSum)
+                  
+        #sys.exit()
+
+        
 
         hits = numpy.where(df.loc[maxSum]>0)[0]
+        print('hits',len(hits))
+        
         hitIndex = list(df.index[hits])
+        if len(hits) < 50:
+            print('hits',hits)
+            print('hitIndex',hitIndex)
+
         block = df.loc[hitIndex,hitIndex]
         blockSum = block.sum(axis=1)
+        print('blockSum',blockSum,blockSum.shape)
+
+        print('median blockSum',numpy.median(blockSum))
+        
         coreBlock = list(blockSum.index[numpy.where(blockSum>=numpy.median(blockSum))[0]])
-        remainder = list(set(df.index)-set(coreBlock))
         print('appended coreBlock',len(coreBlock))
+        if len(coreBlock) < 30:
+            coreBlock.sort()
+            print(coreBlock)
+        print()
+
+        remainder = list(set(df.index)-set(coreBlock))
         frequencyClusters.append(coreBlock)
         if len(remainder)==0:
             return frequencyClusters

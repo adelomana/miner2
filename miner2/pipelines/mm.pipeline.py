@@ -1,4 +1,4 @@
-import sys,os,dill
+import sys,os,dill,numpy
 import matplotlib,matplotlib.pyplot
 
 matplotlib.rcParams.update({'font.size':18,'font.family':'Arial','xtick.labelsize':14,'ytick.labelsize':14})
@@ -8,23 +8,29 @@ import miner2
 import miner2.preprocess
 import miner2.coexpression
 
-# 0. user defined variables
+# 0.0. user defined variables
 expressionFile='/Volumes/omics4tb2/alomana/projects/PSL/MM/data/IA12Zscore.csv'
 resultsDir='/Volumes/omics4tb2/alomana/projects/PSL/MM/results/'
 
+expressionFile='/Users/adriandelomana/scratch/IA12Zscore.csv'
+resultsDir='/Users/adriandelomana/scratch/results/'
+
+# required for coexpression
+numCores = 2
+minNumberGenes = 6
+
+
+# 0.1. build results directory tree
 if os.path.exists(resultsDir) == False:
     os.mkdir(resultsDir)
     os.mkdir(resultsDir+'figures')
     os.mkdir(resultsDir+'info')
 
-"""
 # STEP 0: load the data
 expressionData, conversionTable = miner2.preprocess.main(expressionFile)
 
-individual_expression_data = [expressionData.iloc[:,i] for i in range(50)]
-print(individual_expression_data,len(individual_expression_data),numpy.mean(individual_expression_data))
-
 """
+individual_expression_data = [expressionData.iloc[:,i] for i in range(50)]
 matplotlib.pyplot.boxplot(individual_expression_data)
 matplotlib.pyplot.title("Patient expression profiles")
 matplotlib.pyplot.ylabel("Relative expression")
@@ -56,15 +62,12 @@ figureName=resultsDir+'figures/singlePatient.pdf'
 matplotlib.pyplot.tight_layout()
 matplotlib.pyplot.savefig(figureName)
 matplotlib.pyplot.clf()
-
-dill.dump_session(resultsDir+'info/bottle.dill')
 """
+
+#dill.dump_session(resultsDir+'info/bottle.dill')
     
 # STEP 1: clustering
-dill.load_session(resultsDir+'info/bottle.dill')
-
-minNumberGenes = 6
-numCores = 8
+#dill.load_session(resultsDir+'info/bottle.dill')
 
 initialClusters = miner2.coexpression.cluster(expressionData,minNumberGenes=minNumberGenes,numCores=numCores)
 

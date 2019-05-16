@@ -8,10 +8,19 @@ import miner2
 import miner2.preprocess
 import miner2.coexpression
 
-# 0. user defined variables
+# 0.0. user defined variables
 expressionFile='/Volumes/omics4tb2/alomana/projects/PSL/MM/data/IA12Zscore.csv'
 resultsDir='/Volumes/omics4tb2/alomana/projects/PSL/MM/results/'
 
+expressionFile='/Users/adriandelomana/scratch/IA12Zscore.csv'
+resultsDir='/Users/adriandelomana/scratch/results/'
+
+# required for coexpression
+numCores = 2
+minNumberGenes = 6
+
+
+# 0.1. build results directory tree
 if os.path.exists(resultsDir) == False:
     os.mkdir(resultsDir)
     os.mkdir(resultsDir+'figures')
@@ -59,9 +68,6 @@ matplotlib.pyplot.clf()
     
 # STEP 1: clustering
 #dill.load_session(resultsDir+'info/bottle.dill')
-
-minNumberGenes = 6
-numCores = 8
 
 initialClusters = miner2.coexpression.cluster(expressionData,minNumberGenes=minNumberGenes,numCores=numCores)
 
