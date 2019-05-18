@@ -9,7 +9,7 @@ PACKAGE_DATA = {
     
 setuptools.setup(
     name="miner2",
-    version="0.0.7",
+    version="0.0.8",
     author="Adrian Lopez Garcia de Lomana",
     author_email="alomana@systemsbiology.org",
     description="A newer version of MINER.",

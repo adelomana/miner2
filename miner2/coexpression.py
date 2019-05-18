@@ -223,6 +223,12 @@ def pearson_array(array,vector):
         
     return numpy.sum(product_array,axis=1)/float(product_array.shape[1]-1)
 
+def processCoexpressionLists(lists,expressionData,threshold=0.925):
+    reconstructed = reconstruction(lists,expressionData,threshold)
+    reconstructedList = [reconstructed[i] for i in reconstructed.keys()]
+    reconstructedList.sort(key = lambda s: -len(s))
+    return reconstructedList
+
 def reconstruction(decomposedList,expressionData,threshold=0.925):
     clusters = {i:decomposedList[i] for i in range(len(decomposedList))}
     axes = getAxes(clusters,expressionData)
@@ -252,6 +258,28 @@ def recursiveDecomposition(geneset,expressionData,minNumberGenes=6):
             continue
         shortSets.extend(unmixedFiltered)
     return shortSets
+
+def reviseInitialClusters(clusterList,expressionData,threshold=0.925):
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t genes clustered: {}".format(len(set(numpy.hstack(clusterList))))))
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t revising initial clusters"))
+    coexpressionLists = processCoexpressionLists(clusterList,expressionData,threshold)
+    coexpressionLists.sort(key= lambda s: -len(s))
+    
+    for iteration in range(5):
+        previousLength = len(coexpressionLists)
+        coexpressionLists = processCoexpressionLists(coexpressionLists,expressionData,threshold)
+        newLength = len(coexpressionLists)
+        if newLength == previousLength:
+            break
+    
+    coexpressionLists.sort(key= lambda s: -len(s))
+    coexpressionDict = {str(i):list(coexpressionLists[i]) for i in range(len(coexpressionLists))}
+
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t revision completed"))
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t genes clustered: {}".format(len(set(numpy.hstack(clusterList))))))
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t unique clusters: {}".format(len(coexpressionDict))))
+
+    return coexpressionDict
 
 def unmix(df,iterations=25,returnAll=False):    
     frequencyClusters = []
