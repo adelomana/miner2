@@ -11,7 +11,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from miner2 import miner
+from miner2 import coexpression
+from miner2 import preprocess
 
 DESCRIPTION = """miner-coexpr - MINER cluster expression data."""
 
@@ -40,16 +41,16 @@ if __name__ == '__main__':
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 
-    exp_data, conv_table = miner.preprocess(args.expfile, args.mapfile)
+    exp_data, conv_table = preprocess.main(args.expfile, args.mapfile)
     t1 = time.time()
-    init_clusters = miner.cluster(exp_data,
-                                  minNumberGenes=args.mingenes,
-                                  minNumberOverExpSamples=args.minoverexpsamp,
-                                  maxSamplesExcluded=args.maxexclusion,
-                                  random_state=args.randstate,
-                                  overExpressionThreshold=args.overexpthresh)
+    init_clusters = coexpression.cluster(exp_data,
+                                         minNumberGenes=args.mingenes,
+                                         minNumberOverExpSamples=args.minoverexpsamp,
+                                         maxSamplesExcluded=args.maxexclusion,
+                                         random_state=args.randstate,
+                                         overExpressionThreshold=args.overexpthresh)
 
-    revised_clusters = miner.reviseInitialClusters(init_clusters, exp_data)
+    revised_clusters = coexpression.reviseInitialClusters(init_clusters, exp_data)
     with open(os.path.join(args.outdir, "coexpressionDictionary.json"), 'w') as out:
         json.dump(revised_clusters, out)
 

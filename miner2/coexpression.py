@@ -3,12 +3,16 @@ import sklearn,sklearn.decomposition
 import multiprocessing, multiprocessing.pool
 from collections import Counter
 
-def cluster(expressionData,minNumberGenes = 6,minNumberOverExpSamples=4,maxSamplesExcluded=0.50,random_state=12,overExpressionThreshold=80,numCores=1):
+def cluster(expressionData,minNumberGenes=6,
+            minNumberOverExpSamples=4,
+            maxSamplesExcluded=0.50,
+            random_state=12,
+            overExpressionThreshold=80, numCores=1):
 
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t coexpression"))
 
     df = expressionData.copy()
-    
+
     maxStep = int(numpy.round(10*maxSamplesExcluded))
     allGenesMapped = []
     bestHits = []
