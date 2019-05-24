@@ -1,0 +1,75 @@
+#!/usr/bin/env python
+
+import argparse
+import pandas as pd
+import numpy as np
+import json
+import sys
+import os
+
+import matplotlib
+matplotlib.use('Agg')
+from miner2 import miner
+
+DESCRIPTION = """miner-bcmembers - MINER compute bicluster membership inference"""
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     description=DESCRIPTION)
+    parser.add_argument('expfile', help="input matrix")
+    parser.add_argument('mapfile', help="identifier mapping file")
+    parser.add_argument('regulons', help="regulons.json file from miner-mechinf")
+    parser.add_argument('outdir', help="output directory")
+
+    args = parser.parse_args()
+
+    if not os.path.exists(args.expfile):
+        sys.exit("expression file not found")
+    if not os.path.exists(args.mapfile):
+        sys.exit("identifier mapping file not found")
+    if not os.path.exists(args.regulons):
+        sys.exit("regulon file not found")
+
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+
+    exp_data, conv_table = miner.preprocess(args.expfile, args.mapfile)
+
+    with open(args.regulons) as infile:
+        regulon_modules = json.load(infile)
+
+    bkgd = miner.backgroundDf(exp_data)
+    overexpressed_members = miner.biclusterMembershipDictionary(regulon_modules,
+                                                                bkgd, label=2, p=0.05)
+    underexpressed_members = miner.biclusterMembershipDictionary(regulon_modules,
+                                                                 bkgd, label=0, p=0.05)
+    dysregulated_members = miner.biclusterMembershipDictionary(regulon_modules,
+                                                               bkgd, label="excluded")
+    coherent_members = miner.biclusterMembershipDictionary(regulon_modules,
+                                                           bkgd, label="included")
+
+    # write the overexpressed/underexpressed members as JSON, tools later in the pipeline can
+    # easier access them
+    with open(os.path.join(args.outdir, 'overExpressedMembers.json'), 'w') as out:
+        json.dump(overexpressed_members, out)
+    with open(os.path.join(args.outdir, 'underExpressedMembers.json'), 'w') as out:
+        json.dump(underexpressed_members, out)
+
+    overexpressed_members_matrix = miner.membershipToIncidence(overexpressed_members,
+                                                               exp_data)
+    overexpressed_members_matrix.to_csv(os.path.join(args.outdir,
+                                                     "overExpressedMembers.csv"))
+
+    underexpressed_members_matrix = miner.membershipToIncidence(underexpressed_members,
+                                                                exp_data)
+    underexpressed_members_matrix.to_csv(os.path.join(args.outdir,
+                                                      "underExpressedMembers.csv"))
+
+    dysregulated_members_matrix = miner.membershipToIncidence(dysregulated_members,
+                                                              exp_data)
+    dysregulated_members_matrix.to_csv(os.path.join(args.outdir, "dysregulatedMembers.csv"))
+
+    coherent_members_matrix = miner.membershipToIncidence(coherent_members,
+                                                          exp_data)
+    coherent_members_matrix.to_csv(os.path.join(args.outdir,
+                                                "coherentMembers.csv"))

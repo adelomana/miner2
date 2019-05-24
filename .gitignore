@@ -1,0 +1,5 @@
+*.pyc
+minerData
+dist
+build
+*.egg-info

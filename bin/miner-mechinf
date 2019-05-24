@@ -1,0 +1,113 @@
+#!/usr/bin/env python
+
+import argparse
+import pandas as pd
+import numpy as np
+import json
+import sys
+import os
+import time
+
+import matplotlib
+matplotlib.use('Agg')
+from miner2 import miner
+
+DESCRIPTION = """miner-mechinf - MINER compute mechanistic inference"""
+NUM_CORES = 5
+MIN_REGULON_GENES = 5
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     description=DESCRIPTION)
+    parser.add_argument('expfile', help="input matrix")
+    parser.add_argument('mapfile', help="identifier mapping file")
+    parser.add_argument('coexprdict', help="coexpressionDictionary.json file from miner-coexpr")
+    parser.add_argument('datadir', help="data directory")
+    parser.add_argument('outdir', help="output directory")
+    parser.add_argument('-mc', '--mincorr', type=float, default=0.2,
+                        help="minimum correlation")
+
+    args = parser.parse_args()
+
+    if not os.path.exists(args.expfile):
+        sys.exit("expression file not found")
+    if not os.path.exists(args.mapfile):
+        sys.exit("identifier mapping file not found")
+    if not os.path.exists(args.coexprdict):
+        sys.exit("revised clusters file not found")
+    if not os.path.exists(args.datadir):
+        sys.exit("data directory not found")
+
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+
+    exp_data, conv_table = miner.preprocess(args.expfile, args.mapfile)
+
+    with open(args.coexprdict) as infile:
+        revised_clusters = json.load(infile)
+
+    # get first principal component axes of clusters
+    t1 = time.time()
+    axes = miner.principalDf(revised_clusters, exp_data, subkey=None, minNumberGenes=1)
+    # analyze revised clusters for enrichment in relational database (default: transcription factor binding site database)
+    mechanistic_output = miner.mechanisticInference(axes, revised_clusters, exp_data,
+                                                    correlationThreshold=args.mincorr,
+                                                    numCores=NUM_CORES,
+                                                    dataFolder=args.datadir)
+    # write mechanistic output to .json file
+    miner.write_json(mechanistic_output, os.path.join(args.outdir, "mechanisticOutput.json"))
+
+    # order mechanisticOutput as {tf:{coexpressionModule:genes}}
+    coregulation_modules = miner.getCoregulationModules(mechanistic_output)
+
+    # write coregulation modules to .json file
+    miner.write_json(coregulation_modules,
+                     os.path.join(args.outdir, "coregulationModules.json"))
+
+    # get final regulons by keeping genes that requently appear coexpressed and associated
+    # to a common regulator
+    regulons = miner.getRegulons(coregulation_modules, minNumberGenes=MIN_REGULON_GENES,
+                                 freqThreshold=0.333)
+
+    # reformat regulon dictionary for consistency with revisedClusters and coexpressionModules
+    regulon_modules, regulon_df = miner.regulonDictionary(regulons)
+
+    # write regulons to json file
+    miner.write_json(regulon_modules, os.path.join(args.outdir, "regulons.json"))
+
+    # define coexpression modules as composite of coexpressed regulons
+    coexpression_modules = miner.getCoexpressionModules(mechanistic_output)
+
+    # write coexpression modules to .json file
+    miner.write_json(coexpression_modules, os.path.join(args.outdir, "coexpressionModules.json"))
+
+    # reconvert revised clusters to original gene annotations
+    annotated_revised_clusters = miner.convertDictionary(revised_clusters, conv_table)
+
+    # write annotated coexpression clusters to .json file
+    miner.write_json(revised_clusters,
+                     os.path.join(args.outdir, "coexpressionDictionary_annotated.json"))
+
+    # reconvert results into original annotations
+    regulon_annotated_df = miner.convertRegulons(regulon_df, conv_table)
+
+    # write annotated regulon table to .csv
+    regulon_annotated_df.to_csv(os.path.join(args.outdir, "regulons_annotated.csv"))
+
+    # reconvert regulons
+    annotated_regulons = miner.convertDictionary(regulon_modules, conv_table)
+
+    # write annotated regulons to .json file
+    miner.write_json(regulons, os.path.join(args.outdir, "regulons_annotated.json"))
+
+    # reconvert coexpression modules
+    annotated_coexpression_modules = miner.convertDictionary(coexpression_modules, conv_table)
+
+    # write annotated coexpression modules to .json file
+    miner.write_json(annotated_coexpression_modules,
+                     os.path.join(args.outdir, "coexpressionModules_annotated.json"))
+
+
+    t2 = time.time()
+    print("Completed mechanistic inference in {:.2f} minutes".format((t2 - t1) / 60.))
+    print("Inferred network with {:d} regulons, {:d} regulators, and {:d} co-regulated genes".format(len(regulon_df.Regulon_ID.unique()), len(regulon_df.Regulator.unique()),len(regulon_df.Gene.unique())))

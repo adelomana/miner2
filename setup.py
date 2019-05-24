@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 PACKAGE_DATA = {
     'miner2': ['data/*']
     }
-    
+
 setuptools.setup(
     name="miner2",
     version="0.0.8",
@@ -31,4 +31,7 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
-)
+    scripts=['bin/miner-coexpr', 'bin/miner-mechinf',
+             'bin/miner-bcmembers', 'bin/miner-subtypes',
+             'bin/miner-survival', 'bin/miner-causalinf-pre',
+             'bin/miner-causalinf-post', 'bin/miner-neo'])

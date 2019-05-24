@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+
+import argparse
+import pandas as pd
+import numpy as np
+import json
+import sys
+import os
+
+import matplotlib
+matplotlib.use('Agg')
+from miner2 import miner
+
+DESCRIPTION = """miner-causalinf-pre - MINER pre-compute causal inference"""
+MIN_REGULON_GENES = 5
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     description=DESCRIPTION)
+
+    parser.add_argument('expfile', help="input matrix")
+    parser.add_argument('mapfile', help="identifier mapping file")
+    parser.add_argument('mechout', help="mechanisticOutput.json file from miner-mechinf")
+    parser.add_argument('coexp', help="coexpressionModules.json file from miner-mechinf")
+    parser.add_argument('coreg', help="coregulationModules.json file from miner-mechinf")
+    parser.add_argument('mutation', help="mutations csv file")
+    parser.add_argument('datadir', help="data directory")
+    parser.add_argument('outdir', help="output directory")
+
+    args = parser.parse_args()
+
+    if not os.path.exists(args.expfile):
+        sys.exit("expression file not found")
+    if not os.path.exists(args.mapfile):
+        sys.exit("identifier mapping file not found")
+    if not os.path.exists(args.mechout):
+        sys.exit("mechanistic output file not found")
+    if not os.path.exists(args.mutation):
+        sys.exit("mutation file not found")
+
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+
+    exp_data, conv_table = miner.preprocess(args.expfile, args.mapfile)
+
+    with open(args.mechout) as infile:
+        mechanistic_output= json.load(infile)
+    with open(args.coexp) as infile:
+        coexpression_modules = json.load(infile)
+    with open(args.coreg) as infile:
+        coregulation_modules = json.load(infile)
+        regulons = miner.getRegulons(coregulation_modules, minNumberGenes=MIN_REGULON_GENES,
+                                     freqThreshold=0.333)
+
+    # NOTE when copying Matt's file that it has some hardcoded paths, that I
+    # had to eliminate for using it. Mostly the data folder, which I replaced
+    # by just specifying the mutation file path directly
+    # The path handling in generateCausalInputs was entirely replaced by user
+    # provided paths
+    #
+    # when using Matt's file we also need to make sure all the path construction
+    # is replaced
+    miner.generateCausalInputs(exp_data, mechanistic_output,
+                               coexpression_modules,
+                               saveFolder=args.outdir,
+                               dataFolder=args.datadir,
+                               mutationFile=args.mutation,
+                               regulon_dict=regulons)
+
+    # here comes the R step. This can a few hours
+    # note that neoSourceCode.R actually wants
+    # - gplots
+    # which is usually not installed and should be done
+    # also look into the NEO script to see which other libraries need to be there
