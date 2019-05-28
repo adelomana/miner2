@@ -2,150 +2,161 @@ import numpy,datetime,pandas,sys
 from pkg_resources import Requirement, resource_filename
 from collections import Counter
 
-def correctBatchEffects(df): 
-    zscoredExpression = zscore(df)
+def correct_batch_effects(df):
+    zscored_expression = zscore(df)
     means = []
     stds = []
-    for i in range(zscoredExpression.shape[1]):
-        mean = numpy.mean(zscoredExpression.iloc[:,i])
-        std = numpy.std(zscoredExpression.iloc[:,i])
+    for i in range(zscored_expression.shape[1]):
+        mean = numpy.mean(zscored_expression.iloc[:,i])
+        std = numpy.std(zscored_expression.iloc[:,i])
         means.append(mean)
         stds.append(std)
     if numpy.std(means) >= 0.15:
-        zscoredExpression = preProcessTPM(df)
-    return zscoredExpression
+        # WW: TODO: THIS IS STILL MISSING IN THIS MODULE, BUT IS IN ORIGINAL MINER !!!
+        zscored_expression = preProcessTPM(df)
+    return zscored_expression
 
-def identifierConversion(expressionData, conversion_table_path=None):
+
+def identifier_conversion(expression_data, conversion_table_path=None):
 
     # if not specified, read conversion table from package data
     if conversion_table_path is None:
         conversion_table_path = resource_filename(Requirement.parse("miner2"),
                                                   'miner2/data/identifier_mappings.txt')
 
-    idMap = pandas.read_csv(conversion_table_path, sep='\t')
+    id_map = pandas.read_csv(conversion_table_path, sep='\t')
 
-    genetypes = list(set(idMap.iloc[:,2]))
-    previousIndex = numpy.array(expressionData.index).astype(str)    
-    previousColumns = numpy.array(expressionData.columns).astype(str)  
-    bestMatch = []
-    for geneType in genetypes:
-        subset = idMap[idMap.iloc[:,2]==geneType]
+    gene_types = list(set(id_map.iloc[:,2]))
+    previous_index = numpy.array(expression_data.index).astype(str)
+    previous_columns = numpy.array(expression_data.columns).astype(str)
+    best_match = []
+
+    # WW: This weird loop actually tries to determine whether the expression
+    # matrix is original (in which case the genes are the rows) or a transpose
+    # (in which case the genes are the columns). It does does so by trying to
+    # map the genes in the id map to both the rows and columns and if there
+    # are multiple matches in either it will determine those to be the genes.
+    # It also tries to find the gene type with the most gene matches and build
+    # the conversion table based on the gene type with the most gene matches
+    #
+    # The code seems to have multiple issues, and is very sensitive to changes
+    # we should see if we can simplify it
+    for gene_type in gene_types:
+        subset = id_map[id_map.iloc[:,2] == gene_type]
         subset.index = subset.iloc[:,1]
-        mappedGenes = list(set(previousIndex)&set(subset.index))
-        mappedSamples = list(set(previousColumns)&set(subset.index))
-        if len(mappedGenes)>=max(10,0.01*expressionData.shape[0]):
-            if len(mappedGenes)>len(bestMatch):
-                bestMatch = mappedGenes
+        mapped_genes = list(set(previous_index) & set(subset.index))
+        mapped_samples = list(set(previous_columns) & set(subset.index))
+
+        if len(mapped_genes) >= max(10, 0.01 * expression_data.shape[0]):
+            if len(mapped_genes) > len(best_match):
+                best_match = mapped_genes
                 state = "original"
-                gtype = geneType
-                continue
-        if len(mappedSamples)>=max(10,0.01*expressionData.shape[1]):
-            if len(mappedSamples)>len(bestMatch):
-                bestMatch = mappedSamples
-                state = "transpose"
-                gtype = geneType
+                gtype = gene_type
                 continue
 
-    mappedGenes = bestMatch
-    mappedGenes.sort() # ALO this new line in miner2 is surprisingly important for reproducibility. Otherwise expressionData varies in last digits of floats and every thing down the road changes slightly
-    subset = idMap[idMap.iloc[:,2]==gtype] 
+        if len(mapped_samples) >= max(10, 0.01 * expression_data.shape[1]):
+            if len(mapped_samples) > len(best_match):
+                best_match = mapped_samples
+                state = "transpose"
+                gtype = gene_type
+                continue
+
+    if len(best_match) == 0:
+        raise Exception("Error: Gene identifiers not recognized")
+
+    mapped_genes = best_match
+
+    # ALO this new line in miner2 is surprisingly important for reproducibility.
+    # Otherwise expression_data varies in last digits of floats and every thing
+    # down the road changes slightly
+    mapped_genes.sort()
+
+    subset = id_map[id_map.iloc[:,2]==gtype]
     subset.index = subset.iloc[:,1]
 
-    if len(bestMatch) == 0:
-        print("Error: Gene identifiers not recognized")
-
     if state == "transpose":
-        expressionData = expressionData.T
+        expression_data = expression_data.T
 
     try:
-        convertedData = expressionData.loc[mappedGenes,:]
+        converted_data = expression_data.loc[mapped_genes,:]
     except:
-        convertedData = expressionData.loc[numpy.array(mappedGenes).astype(int),:]
+        converted_data = expression_data.loc[numpy.array(mapped_genes).astype(int),:]
 
-    conversionTable = subset.loc[mappedGenes,:]
-    conversionTable.index = conversionTable.iloc[:,0]
-    conversionTable = conversionTable.iloc[:,1]
-    conversionTable.columns = ["Name"]
+    conversion_table = subset.loc[mapped_genes,:]
+    conversion_table.index = conversion_table.iloc[:,0]
+    conversion_table = conversion_table.iloc[:,1]
+    conversion_table.columns = ["Name"]
 
-    newIndex = list(subset.loc[mappedGenes,"Preferred_Name"])
-    convertedData.index = newIndex
+    new_index = list(subset.loc[mapped_genes, "Preferred_Name"])
+    converted_data.index = new_index
 
-    duplicates = [item for item, count in Counter(newIndex).items() if count > 1]
-    singles = list(set(convertedData.index)-set(duplicates))
+    duplicates = [item for item, count in Counter(new_index).items() if count > 1]
+    singles = list(set(converted_data.index) - set(duplicates))
 
-    ### ALO these two sorting does not seem to compromise reproducibility
-    #duplicates.sort()
-    #singles.sort()
-
+    # WW: please do not remove these sorts, even though they don't seem to do
+    # anything, the conversion_table will have different mappings in places
+    # where there are more than one possible mapping
+    duplicates.sort()
+    singles.sort()
     corrections = []
 
     for duplicate in duplicates:
-        dupData = convertedData.loc[duplicate,:]
-        firstChoice = pandas.DataFrame(dupData.iloc[0,:]).T
-        corrections.append(firstChoice)
+        dup_data = converted_data.loc[duplicate,:]
+        first_choice = pandas.DataFrame(dup_data.iloc[0,:]).T
+        corrections.append(first_choice)
 
     if len(corrections) > 0:
-        #print('there are corrections')
-        correctionsDf = pandas.concat(corrections,axis=0)
-        uncorrectedData = convertedData.loc[singles,:]
-        #print('\t before concat',numpy.mean(convertedData.iloc[:,0]))
-        convertedData = pandas.concat([uncorrectedData,correctionsDf],axis=0)
-        #print('\t during corrections',numpy.mean(convertedData.iloc[:,0]))
+        corrections_df = pandas.concat(corrections, axis=0)
+        uncorrected_data = converted_data.loc[singles,:]
+        converted_data = pandas.concat([uncorrected_data, corrections_df], axis=0)
 
-    #print('right after corrections',numpy.mean(convertedData.iloc[:,0]))
-    #print()
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t {} out of {} gene names converted to ENSEMBL IDs".format(converted_data.shape[0], expression_data.shape[0])))
 
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t {} out of {} gene names converted to ENSEMBL IDs".format(convertedData.shape[0],expressionData.shape[0])))
+    return converted_data, conversion_table
 
-    return convertedData, conversionTable
 
 def main(filename, conversion_table_path=None):
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data reading"))
-    rawExpression = readFileToDf(filename)
-
-    firstPatient = rawExpression.iloc[:,0]
-    #print('raw',type(firstPatient),len(firstPatient),numpy.mean(firstPatient))
-
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data recovered: {} features by {} samples".format(rawExpression.shape[0],rawExpression.shape[1])))
+    raw_expression = read_file_to_df(filename)
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data recovered: {} features by {} samples".format(raw_expression.shape[0], raw_expression.shape[1])))
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data transformation"))
 
-    rawExpressionZeroFiltered = removeNullRows(rawExpression)
-    zscoredExpression = correctBatchEffects(rawExpressionZeroFiltered)
-
-    firstPatient = zscoredExpression.iloc[:,0]
-    #print('zscore',type(firstPatient),len(firstPatient),numpy.mean(firstPatient))
+    raw_expression_zero_filtered = remove_null_rows(raw_expression)
+    zscored_expression = correct_batch_effects(raw_expression_zero_filtered)
 
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t gene ID conversion"))
-    expressionData, conversionTable = identifierConversion(zscoredExpression,
-                                                           conversion_table_path)
+    expression_data, conversion_table = identifier_conversion(zscored_expression,
+                                                              conversion_table_path)
 
-    firstPatient = expressionData.iloc[:,0]
-    #print('expressionData',type(firstPatient),len(firstPatient),numpy.mean(firstPatient))
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t working expression data: {} features by {} samples".format(expression_data.shape[0], expression_data.shape[1])))
 
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t working expression data: {} features by {} samples".format(expressionData.shape[0],expressionData.shape[1])))
-    return expressionData, conversionTable
+    return expression_data, conversion_table
 
-def readFileToDf(filename):
+
+def read_file_to_df(filename):
+    """read expression file into a Pandas DataFrame depending on the file extension"""
     extension = filename.split(".")[-1]
     if extension == "csv":
-        df = pandas.read_csv(filename,index_col=0,header=0)
-        shape = df.shape
-        if shape[1] == 0:
-            df = pandas.read_csv(filename,index_col=0,header=0,sep="\t")
+        df = pandas.read_csv(filename, index_col=0, header=0)
+        num_rows, num_cols = df.shape
+        if num_cols == 0:
+            df = pandas.read_csv(filename, index_col=0, header=0, sep="\t")
     elif extension == "txt":
-        df = pandas.read_csv(filename,index_col=0,header=0,sep="\t")
-        shape = df.shape
-        if shape[1] == 0:
-            df = pandas.read_csv(filename,index_col=0,header=0)    
+        df = pandas.read_csv(filename, index_col=0, header=0, sep="\t")
+        num_rows, num_cols = df.shape
+        if num_cols == 0:
+            df = pandas.read_csv(filename, index_col=0, header=0)
     return df
 
-def removeNullRows(df):
-    minimum = numpy.percentile(df,0)
+
+def remove_null_rows(df):
+    minimum = numpy.percentile(df, 0)
     if minimum == 0:
-        filteredDf = df.loc[df.sum(axis=1)>0,:]
+        filtered_df = df.loc[df.sum(axis=1)>0,:]
     else:
-        filteredDf = df
-    return filteredDf
+        filtered_df = df
+    return filtered_df
+
 
 def zscore(expressionData):
     zero = numpy.percentile(expressionData,0)
