@@ -67,6 +67,8 @@ matplotlib.pyplot.clf()
 initialClusters = miner2.coexpression.cluster(expressionData,minNumberGenes=minNumberGenes,numCores=numCores)
 revisedClusters = miner2.coexpression.reviseInitialClusters(initialClusters,expressionData)
 
+sys.exit()
+
 # QC: visualize coexpression clusters
 
 # retrieve first 10 clusters for visual inspection
