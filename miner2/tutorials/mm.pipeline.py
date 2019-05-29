@@ -10,62 +10,62 @@ import miner2.coexpression
 import miner2.mechanisticInference
 
 # 0.0. user defined variables
-expressionFile='/Volumes/omics4tb2/alomana/projects/miner2/data/IA12Zscore.csv'
-resultsDir='/Volumes/omics4tb2/alomana/projects/miner2/results/IA12Zscore/'
+expression_file='/Volumes/omics4tb2/alomana/projects/miner2/data/IA12Zscore.csv'
+results_dir='/Volumes/omics4tb2/alomana/projects/miner2/results/IA12Zscore/'
 
-numCores = 8         # required for coexpression
-minNumberGenes = 6   # required for coexpression
-minCorrelation = 0.2 # required for mechanistic inference. Bulk RNAseq default=0.2;single cell RNAseq default=0.05
+num_cores = 8         # required for coexpression
+min_number_genes = 6   # required for coexpression
+min_correlation = 0.2 # required for mechanistic inference. Bulk RNAseq default=0.2;single cell RNAseq default=0.05
 
 # 0.1. build results directory tree
-if os.path.exists(resultsDir) == False:
-    os.mkdir(resultsDir)
-    os.mkdir(resultsDir+'figures')
-    os.mkdir(resultsDir+'info')
+if os.path.exists(results_dir) == False:
+    os.mkdir(results_dir)
+    os.mkdir(results_dir+'figures')
+    os.mkdir(results_dir+'info')
 
 # use as needed
-# dill.dump_session(resultsDir+'info/bottle.dill')
-# dill.load_session(resultsDir+'info/bottle.dill')
+# dill.dump_session(results_dir+'info/bottle.dill')
+# dill.load_session(results_dir+'info/bottle.dill')
 
 # STEP 0: load the data
-expressionData, conversionTable = miner2.preprocess.main(expressionFile)
+expression_data, conversion_table = miner2.preprocess.main(expression_file)
 
-individual_expression_data = [expressionData.iloc[:,i] for i in range(50)]
+individual_expression_data = [expression_data.iloc[:,i] for i in range(50)]
 matplotlib.pyplot.boxplot(individual_expression_data)
 matplotlib.pyplot.title("Patient expression profiles")
 matplotlib.pyplot.ylabel("Relative expression")
 matplotlib.pyplot.xlabel("Sample ID")
 matplotlib.pyplot.xticks(fontsize=6)
 
-figureName=resultsDir+'figures/boxplots.pdf'
+figureName=results_dir+'figures/boxplots.pdf'
 matplotlib.pyplot.tight_layout()
 matplotlib.pyplot.savefig(figureName)
 matplotlib.pyplot.clf()
 
-matplotlib.pyplot.hist(expressionData.iloc[0,:],bins=100,alpha=0.75)
+matplotlib.pyplot.hist(expression_data.iloc[0,:],bins=100,alpha=0.75)
 matplotlib.pyplot.title("Expression of single gene")
 matplotlib.pyplot.ylabel("Frequency")
 matplotlib.pyplot.xlabel("Relative expression")
 
-figureName=resultsDir+'figures/singleGene.pdf'
+figureName=results_dir+'figures/singleGene.pdf'
 matplotlib.pyplot.tight_layout()
 matplotlib.pyplot.savefig(figureName)
 matplotlib.pyplot.clf()
 
-matplotlib.pyplot.hist(expressionData.iloc[:,0],bins=200,color=[0,0.4,0.8],alpha=0.75)
+matplotlib.pyplot.hist(expression_data.iloc[:,0],bins=200,color=[0,0.4,0.8],alpha=0.75)
 matplotlib.pyplot.ylim(0,350)
 matplotlib.pyplot.title("Expression of single patient sample",FontSize=14)
 matplotlib.pyplot.ylabel("Frequency")
 matplotlib.pyplot.xlabel("Relative expression")
 
-figureName=resultsDir+'figures/singlePatient.pdf'
+figureName=results_dir+'figures/singlePatient.pdf'
 matplotlib.pyplot.tight_layout()
 matplotlib.pyplot.savefig(figureName)
 matplotlib.pyplot.clf()
 
 # STEP 1: clustering
-initialClusters = miner2.coexpression.cluster(expressionData,minNumberGenes=minNumberGenes,numCores=numCores)
-revisedClusters = miner2.coexpression.reviseInitialClusters(initialClusters,expressionData)
+initial_clusters = miner2.coexpression.cluster(expression_data,min_number_genes=min_number_genes,num_cores=num_cores)
+revised_clusters = miner2.coexpression.reviseInitialClusters(initial_clusters,expression_data)
 
 sys.exit()
 

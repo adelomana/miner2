@@ -1,6 +1,6 @@
-name = "miner2"
-
 import datetime,pkg_resources
+
+name = "miner2"
 
 try:
     __version__ = pkg_resources.get_distribution(name)
