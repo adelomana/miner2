@@ -189,7 +189,7 @@ def iterativeCombination(dict_,key,iterations=25):
     return revised
 
 def make_hits_matrix_new(matrix): ### new function developped by Wei-Ju
-    t0 = time.time()
+    #t0 = time.time()
     num_rows = matrix.shape[0]
     hits_values = numpy.zeros((num_rows,num_rows))
 
@@ -204,7 +204,7 @@ def make_hits_matrix_new(matrix): ### new function developped by Wei-Ju
             cols.append(col)
         hits_values[rows, cols] += 1
 
-    t1 = time.time()
+    #t1 = time.time()
     #print("hitsMatrix(cartesian) in %.2f s." % (t1 - t0))
     return hits_values
 
@@ -240,12 +240,11 @@ def pearson_array(array,vector):
 
     return numpy.sum(product_array,axis=1)/float(product_array.shape[1]-1)
 
-
-def processCoexpressionLists(lists,expressionData,threshold=0.925):
-    reconstructed = reconstruction(lists,expressionData,threshold)
-    reconstructedList = [reconstructed[i] for i in reconstructed.keys()]
-    reconstructedList.sort(key = lambda s: -len(s))
-    return reconstructedList
+def process_coexpression_lists(lists,expression_data,threshold=0.925):
+    reconstructed = reconstruction(lists,expression_data,threshold)
+    reconstructed_list = [reconstructed[i] for i in reconstructed.keys()]
+    reconstructed_list.sort(key = lambda s: -len(s))
+    return reconstructed_list
 
 def reconstruction(decomposedList,expressionData,threshold=0.925):
     clusters = {i:decomposedList[i] for i in range(len(decomposedList))}
@@ -277,27 +276,33 @@ def recursiveDecomposition(geneset,expressionData,minNumberGenes=6):
         shortSets.extend(unmixedFiltered)
     return shortSets
 
-def reviseInitialClusters(clusterList,expressionData,threshold=0.925):
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t genes clustered: {}".format(len(set(numpy.hstack(clusterList))))))
+def revise_initial_clusters(cluster_list,expression_data,threshold=0.925):
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t genes clustered: {}".format(len(set(numpy.hstack(cluster_list))))))
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t revising initial clusters"))
-    coexpressionLists = processCoexpressionLists(clusterList,expressionData,threshold)
-    coexpressionLists.sort(key= lambda s: -len(s))
+    coexpression_lists = process_coexpression_lists(cluster_list,expression_data,threshold)
+
+    #alo=[len(element) for element in coexpression_lists]
+    #print('285',alo)
+    #coexpression_lists.sort(key= lambda s: -len(s)) #### ALO.2019.05.29. I think this is redundant, it's done in prior line, inside function
     
     for iteration in range(5):
-        previousLength = len(coexpressionLists)
-        coexpressionLists = processCoexpressionLists(coexpressionLists,expressionData,threshold)
-        newLength = len(coexpressionLists)
-        if newLength == previousLength:
+        previous_length = len(coexpression_lists)
+        coexpression_lists = process_coexpression_lists(coexpression_lists,expression_data,threshold)
+        new_length = len(coexpression_lists)
+        if new_length == previous_length:
             break
     
-    coexpressionLists.sort(key= lambda s: -len(s))
-    coexpressionDict = {str(i):list(coexpressionLists[i]) for i in range(len(coexpressionLists))}
+    #coexpression_lists.sort(key= lambda s: -len(s)) # ALO.20190529. I think this sort is redundant, it's already done by function process_coexpression_lists
+    #alo=[len(element) for element in coexpression_lists]
+    #print('297',alo)
+
+    coexpression_dict = {str(i):list(coexpression_lists[i]) for i in range(len(coexpression_lists))}
 
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t revision completed"))
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t genes clustered: {}".format(len(set(numpy.hstack(clusterList))))))
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t unique clusters: {}".format(len(coexpressionDict))))
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t genes clustered: {}".format(len(set(numpy.hstack(cluster_list))))))
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t unique clusters: {}".format(len(coexpression_dict))))
 
-    return coexpressionDict
+    return coexpression_dict
 
 def unmix(df,iterations=25,returnAll=False):    
     frequencyClusters = []
