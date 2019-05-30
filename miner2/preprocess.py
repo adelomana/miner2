@@ -66,11 +66,6 @@ def identifier_conversion(expression_data, conversion_table_path=None):
 
     mapped_genes = best_match
 
-    # ALO this new line in miner2 is surprisingly important for reproducibility.
-    # Otherwise expression_data varies in last digits of floats and every thing
-    # down the road changes slightly
-    mapped_genes.sort()
-
     subset = id_map[id_map.iloc[:,2]==gtype]
     subset.index = subset.iloc[:,1]
 
@@ -93,11 +88,6 @@ def identifier_conversion(expression_data, conversion_table_path=None):
     duplicates = [item for item, count in Counter(new_index).items() if count > 1]
     singles = list(set(converted_data.index) - set(duplicates))
 
-    # WW: please do not remove these sorts, even though they don't seem to do
-    # anything, the conversion_table will have different mappings in places
-    # where there are more than one possible mapping
-    duplicates.sort()
-    singles.sort()
     corrections = []
 
     for duplicate in duplicates:
@@ -118,6 +108,7 @@ def identifier_conversion(expression_data, conversion_table_path=None):
 def main(filename, conversion_table_path=None):
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data reading"))
     raw_expression = read_file_to_df(filename)
+
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data recovered: {} features by {} samples".format(raw_expression.shape[0], raw_expression.shape[1])))
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data transformation"))
 
