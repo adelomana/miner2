@@ -1,4 +1,4 @@
-import datetime,numpy,pandas,time,sys
+import datetime,numpy,pandas,time,sys,itertools
 import sklearn,sklearn.decomposition
 import multiprocessing, multiprocessing.pool
 from collections import Counter
@@ -123,14 +123,9 @@ def FrequencyMatrix(matrix,overExpThreshold = 1):
     
     matrix[matrix<overExpThreshold] = 0
     matrix[matrix>0] = 1
+
+    frequencyMatrix = make_hits_matrix_new(matrix)
             
-    hitsMatrix = pandas.DataFrame(numpy.zeros((numRows,numRows)))
-    for column in range(matrix.shape[1]):
-        geneset = matrix[:,column]
-        hits = numpy.where(geneset>0)[0]
-        hitsMatrix.iloc[hits,hits] += 1
-        
-    frequencyMatrix = numpy.array(hitsMatrix)
     traceFM = numpy.array([frequencyMatrix[i,i] for i in range(frequencyMatrix.shape[0])]).astype(float)
     if numpy.count_nonzero(traceFM)<len(traceFM):
         #subset nonzero. computefm. normFM zeros with input shape[0]. overwrite by slice np.where trace>0
@@ -192,6 +187,26 @@ def iterativeCombination(dict_,key,iterations=25):
             initial = [i for i in revised]
             initialLength = len(initial)
     return revised
+
+def make_hits_matrix_new(matrix): ### new function developped by Wei-Ju
+    t0 = time.time()
+    num_rows = matrix.shape[0]
+    hits_values = numpy.zeros((num_rows,num_rows))
+
+    for column in range(matrix.shape[1]):
+        geneset = matrix[:,column]
+        hits = numpy.where(geneset>0)[0]
+        rows = []
+        cols = []
+        cp = itertools.product(hits, hits)
+        for row, col in cp:
+            rows.append(row)
+            cols.append(col)
+        hits_values[rows, cols] += 1
+
+    t1 = time.time()
+    #print("hitsMatrix(cartesian) in %.2f s." % (t1 - t0))
+    return hits_values
 
 def parallel_overexpress_surrogate(task):
     element, expression_data, expression_threshold = task
