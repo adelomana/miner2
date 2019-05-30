@@ -64,7 +64,9 @@ def identifier_conversion(expression_data, conversion_table_path=None):
     if len(best_match) == 0:
         raise Exception("Error: Gene identifiers not recognized")
 
-    mapped_genes = best_match
+    # ALO/WW: Without sorting the mapped_genes, the values will differ in
+    # multiple places, we should check why this has such a great impact
+    mapped_genes = sorted(best_match)
 
     subset = id_map[id_map.iloc[:,2]==gtype]
     subset.index = subset.iloc[:,1]
@@ -74,7 +76,8 @@ def identifier_conversion(expression_data, conversion_table_path=None):
 
     try:
         converted_data = expression_data.loc[mapped_genes,:]
-    except:
+    except Exception as e:
+        print(e)
         converted_data = expression_data.loc[numpy.array(mapped_genes).astype(int),:]
 
     conversion_table = subset.loc[mapped_genes,:]
@@ -85,11 +88,27 @@ def identifier_conversion(expression_data, conversion_table_path=None):
     new_index = list(subset.loc[mapped_genes, "Preferred_Name"])
     converted_data.index = new_index
 
+    # WW: Due to ambiguous mapping converted_data will potentially have
+    # multiple rows containing the same row name, so this conflict
+    # needs to be resolved
     duplicates = [item for item, count in Counter(new_index).items() if count > 1]
     singles = list(set(converted_data.index) - set(duplicates))
 
+    # WW: with the sorting of the duplicate and singles lists we are eliminating the
+    # order ambiguity that exists when we switch between Python 2 and 3, but
+    # in actuality the fundamental problem is the gene mapping
+    duplicates.sort()
+    singles.sort()
+
     corrections = []
 
+    print("WARNING: There were %d ambiguously mapped genes !" % len(duplicates))
+
+    # WW: The way duplicates are resolved is by retrieving the duplicate rows
+    # as individual DataFrames and picking the first one
+    # TODO: we might have to rethink the strategy because the ambiguous row names
+    # were introduced by the way the rows were remapped and we actually need to
+    # map them to individual genes
     for duplicate in duplicates:
         dup_data = converted_data.loc[duplicate,:]
         first_choice = pandas.DataFrame(dup_data.iloc[0,:]).T
