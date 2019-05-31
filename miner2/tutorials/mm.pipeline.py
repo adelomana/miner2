@@ -7,7 +7,7 @@ matplotlib.rcParams['pdf.fonttype']=42
 import miner2
 import miner2.preprocess
 import miner2.coexpression
-import miner2.mechanisticInference
+import miner2.mechanistic_inference
 
 # 0.0. user defined variables
 expression_file='/Volumes/omics4tb2/alomana/projects/miner2/data/IA12Zscore.csv'
@@ -28,9 +28,9 @@ if os.path.exists(results_dir) == False:
 # dill.load_session(results_dir+'info/bottle.dill')
 
 # STEP 0: load the data
+"""
 expression_data, conversion_table = miner2.preprocess.main(expression_file)
 
-"""
 individual_expression_data = [expression_data.iloc[:,i] for i in range(50)]
 matplotlib.pyplot.boxplot(individual_expression_data)
 matplotlib.pyplot.title("Patient expression profiles")
@@ -101,10 +101,10 @@ matplotlib.pyplot.clf()
 dill.load_session(results_dir+'info/bottle.dill')
 
 # get first principal component axes of clusters
-axes = miner2.mechanisticInference.principalDf(revised_clusters,expression_data,subkey=None,min_number_genes=1)
+axes = miner2.mechanistic_inference.principal_df(revised_clusters,expression_data,subkey=None,min_number_genes=1)
 
 # analyze revised clusters for enrichment in relational database 
-mechanistic_output = miner2.mechanisticInference.enrichment(axes,revised_clusters,expression_data,correlationThreshold=min_correlation,num_cores=num_cores)
+mechanistic_output = miner2.mechanistic_inference.enrichment(axes,revised_clusters,expression_data,correlation_threshold=min_correlation,num_cores=num_cores)
 
 # order mechanisticOutput as {tf:{coexpressionModule:genes}} 
 #coregulationModules = miner.getCoregulationModules(mechanisticOutput)
