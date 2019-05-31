@@ -82,7 +82,7 @@ def axisTfs(axesDf,tfList,expressionData,correlationThreshold=0.3):
     
     return tfDict
 
-def enrichment(axes,revised_clusters,expression_data,correlation_threshold=0.3,num_cores=1,p=0.05,database="tfbsdb_tf_to_genes.pkl"):
+def enrichment(axes,revisedClusters,expressionData,correlationThreshold=0.3,numCores=1,p=0.05,database="tfbsdb_tf_to_genes.pkl"):
     
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t mechanistic inference"))
     
@@ -90,13 +90,13 @@ def enrichment(axes,revised_clusters,expression_data,correlation_threshold=0.3,n
     with open(tfToGenesPath, 'rb') as f:
         tfToGenes = pickle.load(f)
 
-    if correlation_threshold <= 0:
-        allGenes = [int(len(expression_data.index))]
-    elif correlation_threshold > 0:
-        allGenes = list(expression_data.index)
+    if correlationThreshold <= 0:
+        allGenes = [int(len(expressionData.index))]
+    elif correlationThreshold > 0:
+        allGenes = list(expressionData.index)
         
     tfs = list(tfToGenes.keys())
-    tfMap = axisTfs(axes,tfs,expression_data,correlation_threshold=correlation_threshold)
+    tfMap = axisTfs(axes,tfs,expressionData,correlationThreshold=correlationThreshold)
 
     tasks=[[clusterKey,(allGenes,revisedClusters,tfMap,tfToGenes,p)] for clusterKey in list(revisedClusters.keys())]
     hydra=multiprocessing.pool.Pool(numCores)
@@ -126,7 +126,7 @@ def hyper(population,set1,set2,overlap):
     
     return prb 
 
-def principal_df(dict_,expressionData,regulons=None,subkey='genes',minNumberGenes=8,random_state=12):
+def principalDf(dict_,expressionData,regulons=None,subkey='genes',minNumberGenes=8,random_state=12):
 
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t preparing mechanistic inference"))
 
