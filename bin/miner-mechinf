@@ -11,6 +11,7 @@ import time
 import matplotlib
 matplotlib.use('Agg')
 from miner2 import miner
+from miner2 import preprocess
 
 DESCRIPTION = """miner-mechinf - MINER compute mechanistic inference"""
 NUM_CORES = 5
@@ -41,7 +42,7 @@ if __name__ == '__main__':
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 
-    exp_data, conv_table = miner.preprocess(args.expfile, args.mapfile)
+    exp_data, conv_table = preprocess.main(args.expfile, args.mapfile)
 
     with open(args.coexprdict) as infile:
         revised_clusters = json.load(infile)
