@@ -27,8 +27,8 @@ if os.path.exists(results_dir) == False:
 # dill.dump_session(results_dir+'info/bottle.dill')
 # dill.load_session(results_dir+'info/bottle.dill')
 
-# STEP 0: load the data
 """
+# STEP 0: load the data
 expression_data, conversion_table = miner2.preprocess.main(expression_file)
 
 individual_expression_data = [expression_data.iloc[:,i] for i in range(50)]
@@ -63,10 +63,8 @@ figure_name=results_dir+'figures/singlePatient.pdf'
 matplotlib.pyplot.tight_layout()
 matplotlib.pyplot.savefig(figure_name)
 matplotlib.pyplot.clf()
-"""
 
 # STEP 1: clustering
-"""
 initial_clusters = miner2.coexpression.cluster(expression_data,min_number_genes=min_number_genes,num_cores=num_cores)
 revised_clusters = miner2.coexpression.revise_initial_clusters(initial_clusters,expression_data)
 
@@ -101,7 +99,7 @@ matplotlib.pyplot.clf()
 dill.load_session(results_dir+'info/bottle.dill')
 
 # get first principal component axes of clusters
-axes = miner2.mechanistic_inference.principal_df(revised_clusters,expression_data,subkey=None,min_number_genes=1)
+axes = miner2.mechanistic_inference.get_principal_df(revised_clusters,expression_data,subkey=None,min_number_genes=1)
 
 # analyze revised clusters for enrichment in relational database 
 mechanistic_output = miner2.mechanistic_inference.enrichment(axes,revised_clusters,expression_data,correlation_threshold=min_correlation,num_cores=num_cores)
