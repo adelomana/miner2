@@ -2,6 +2,7 @@ import datetime,pkg_resources
 
 name = "miner2"
 
+#__version__ = pkg_resources.get_distribution(name)
 try:
     __version__ = pkg_resources.get_distribution(name)
 except:
