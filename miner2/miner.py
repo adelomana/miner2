@@ -552,13 +552,17 @@ def unmix(df,iterations=25,returnAll=False):
     
     for iteration in range(iterations):
         sumDf1 = df.sum(axis=1)
-        maxSum = np.argmax(sumDf1)
+        #maxSum = np.argmax(sumDf1)
+
+        maxSum = sumDf1.idxmax()
+        
         hits = np.where(df.loc[maxSum]>0)[0]
         hitIndex = list(df.index[hits])
         block = df.loc[hitIndex,hitIndex]
         blockSum = block.sum(axis=1)
         coreBlock = list(blockSum.index[np.where(blockSum>=np.median(blockSum))[0]])
-        remainder = list(set(df.index)-set(coreBlock))
+        # WW: sorting for comparability
+        remainder = sorted(list(set(df.index) - set(coreBlock)))
         frequencyClusters.append(coreBlock)
         if len(remainder)==0:
             return frequencyClusters
@@ -612,7 +616,8 @@ def iterativeCombination(dict_,key,iterations=25):
     for iteration in range(iterations):
         revised = [i for i in initial]
         for element in initial:
-            revised = list(set(revised)|set(dict_[element]))
+            # WW: sorting for comparability
+            revised = sorted(list(set(revised)|set(dict_[element])))
         revisedLength = len(revised)
         if revisedLength == initialLength:
             return revised
@@ -623,7 +628,8 @@ def iterativeCombination(dict_,key,iterations=25):
 
 def decomposeDictionaryToLists(dict_):
     decomposedSets = []
-    for key in dict_.keys():
+    # WW: sorting for comparability
+    for key in sorted(dict_.keys()):
         newSet = iterativeCombination(dict_,key,iterations=25)
         if newSet not in decomposedSets:
             decomposedSets.append(newSet)
@@ -631,19 +637,19 @@ def decomposeDictionaryToLists(dict_):
 
 def combineClusters(axes,clusters,threshold=0.925):
     combineAxes = {}
-    filterKeys = np.array(axes.keys())
+    filterKeys = np.array(list(axes.keys()))
     axesMatrix = np.vstack([axes[i] for i in filterKeys])
     for key in filterKeys:
         axis = axes[key]
         pearson = pearson_array(axesMatrix,axis)
         combine = np.where(pearson>threshold)[0]
         combineAxes[key] = filterKeys[combine]
-     
+
     revisedClusters = {}
     combinedKeys = decomposeDictionaryToLists(combineAxes)
     for keyList in combinedKeys:
         genes = list(set(np.hstack([clusters[i] for i in keyList])))
-        revisedClusters[len(revisedClusters)] = genes
+        revisedClusters[len(revisedClusters)] = sorted(genes)
 
     return revisedClusters
 
@@ -658,7 +664,8 @@ def recursiveAlignment(geneset,expressionData,minNumberGenes=6):
     if len(recDecomp) == 0:
         return []
     reconstructed = reconstruction(recDecomp,expressionData)
-    reconstructedList = [reconstructed[i] for i in reconstructed.keys() if reconstructed[i]>minNumberGenes]
+    reconstructedList = [reconstructed[i] for i in reconstructed.keys()
+                         if len(reconstructed[i])>minNumberGenes]
     reconstructedList.sort(key = lambda s: -len(s))
     return reconstructedList
 
@@ -712,7 +719,7 @@ def cluster(expressionData,minNumberGenes = 6,minNumberOverExpSamples=4,maxSampl
                 stackGenes = np.hstack(genesMapped)
             except:
                 stackGenes = []
-            residualGenes = list(set(df.index)-set(stackGenes))
+            residualGenes = sorted(list(set(df.index)-set(stackGenes)))
             df = df.loc[residualGenes,:]
 
             # computationally fast surrogate for passing the overexpressed significance test:
@@ -879,16 +886,14 @@ def processCoexpressionLists(lists,expressionData,threshold=0.925):
 
 def reviseInitialClusters(clusterList,expressionData,threshold=0.925):
     coexpressionLists = processCoexpressionLists(clusterList,expressionData,threshold)
-    coexpressionLists.sort(key= lambda s: -len(s))
-    
+
     for iteration in range(5):
         previousLength = len(coexpressionLists)
         coexpressionLists = processCoexpressionLists(coexpressionLists,expressionData,threshold)
         newLength = len(coexpressionLists)
         if newLength == previousLength:
             break
-    
-    coexpressionLists.sort(key= lambda s: -len(s))
+
     coexpressionDict = {str(i):list(coexpressionLists[i]) for i in range(len(coexpressionLists))}
 
     return coexpressionDict

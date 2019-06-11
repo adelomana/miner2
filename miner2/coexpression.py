@@ -53,7 +53,7 @@ def cluster(expression_data, min_number_genes=6,
         except:
             stackGenes = []
 
-        residual_genes = list(set(df.index) - set(stackGenes))
+        residual_genes = sorted(list(set(df.index) - set(stackGenes)))
         df = df.loc[residual_genes, :]
 
         # significance surrogate in parallel
@@ -90,7 +90,7 @@ def combineClusters(axes,clusters,threshold=0.925):
     combinedKeys = decomposeDictionaryToLists(combineAxes)
     for keyList in combinedKeys:
         genes = list(set(numpy.hstack([clusters[i] for i in keyList])))
-        revisedClusters[len(revisedClusters)] = genes
+        revisedClusters[len(revisedClusters)] = sorted(genes)
 
     return revisedClusters
 
@@ -179,7 +179,8 @@ def iterativeCombination(dict_,key,iterations=25):
     for iteration in range(iterations):
         revised = [i for i in initial]
         for element in initial:
-            revised = list(set(revised)|set(dict_[element]))
+            # WW: sorting for comparability
+            revised = sorted(list(set(revised) | set(dict_[element])))
         revisedLength = len(revised)
         if revisedLength == initialLength:
             return revised
@@ -266,7 +267,7 @@ def recursiveDecomposition(geneset,expressionData,minNumberGenes=6):
     if len(unmixedFiltered) == 0:
         return []
     shortSets = [i for i in unmixedFiltered if len(i)<50]
-    longSets = [i for i in unmixedFiltered if len(i)>=50]    
+    longSets = [i for i in unmixedFiltered if len(i)>=50]
     if len(longSets)==0:
         return unmixedFiltered
     for ls in longSets:
@@ -281,20 +282,12 @@ def revise_initial_clusters(cluster_list,expression_data,threshold=0.925):
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t revising initial clusters"))
     coexpression_lists = process_coexpression_lists(cluster_list,expression_data,threshold)
 
-    #alo=[len(element) for element in coexpression_lists]
-    #print('285',alo)
-    #coexpression_lists.sort(key= lambda s: -len(s)) #### ALO.2019.05.29. I think this is redundant, it's done in prior line, inside function
-    
     for iteration in range(5):
         previous_length = len(coexpression_lists)
         coexpression_lists = process_coexpression_lists(coexpression_lists,expression_data,threshold)
         new_length = len(coexpression_lists)
         if new_length == previous_length:
             break
-    
-    #coexpression_lists.sort(key= lambda s: -len(s)) # ALO.20190529. I think this sort is redundant, it's already done by function process_coexpression_lists
-    #alo=[len(element) for element in coexpression_lists]
-    #print('297',alo)
 
     coexpression_dict = {str(i):list(coexpression_lists[i]) for i in range(len(coexpression_lists))}
 
@@ -304,25 +297,29 @@ def revise_initial_clusters(cluster_list,expression_data,threshold=0.925):
 
     return coexpression_dict
 
-def unmix(df,iterations=25,returnAll=False):    
+def unmix(df,iterations=25,returnAll=False):
     frequencyClusters = []
     for iteration in range(iterations):
         sumDf1 = df.sum(axis=1)
 
-        # ALO: consistent return in case of ties
+        # WW: replaced it with the old idxmax()
+        # call for now before checking against Python 3
+        maxSum = sumDf1.idxmax()
+        """# ALO: consistent return in case of ties
         selected=sumDf1[sumDf1.values == sumDf1.values.max()]
         chosen=selected.index.tolist()
         if len(chosen) > 1:
             chosen.sort()
         maxSum=chosen[0]
-        # end ALO
-                  
+        # end ALO"""
+
         hits = numpy.where(df.loc[maxSum]>0)[0]
         hitIndex = list(df.index[hits])
         block = df.loc[hitIndex,hitIndex]
         blockSum = block.sum(axis=1)
         coreBlock = list(blockSum.index[numpy.where(blockSum>=numpy.median(blockSum))[0]])
-        remainder = list(set(df.index)-set(coreBlock))
+        # WW: sorting for comparability
+        remainder = sorted(list(set(df.index)-set(coreBlock)))
         frequencyClusters.append(coreBlock)
         if len(remainder)==0:
             return frequencyClusters
@@ -331,5 +328,5 @@ def unmix(df,iterations=25,returnAll=False):
         df = df.loc[remainder,remainder]
     if returnAll is True:
         frequencyClusters.append(remainder)
-    
+
     return frequencyClusters
