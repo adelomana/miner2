@@ -49,6 +49,13 @@ class PreprocessTest(unittest.TestCase):
             for j in range(3):
                 self.assertAlmostEquals(df2.values[i, j], -0.8164965809277261)
 
+    def test_preprocess_main_simple(self):
+        exp, conv_table = preprocess.main('testdata/exp_data-001.csv', 'testdata/conv_table-001.tsv')
+        self.assertEquals((10, 3), exp.shape)
+        for i in range(3):
+            for j in range(3):
+                self.assertAlmostEquals(exp.values[i, j], -0.8164965809277261)
+
 if __name__ == '__main__':
     SUITE = []
     SUITE.append(unittest.TestLoader().loadTestsFromTestCase(PreprocessTest))
