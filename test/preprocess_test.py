@@ -22,6 +22,33 @@ class PreprocessTest(unittest.TestCase):
         df2 = preprocess.remove_null_rows(df)
         self.assertEqual(4, df2.shape[0], "wrong number of rows")
 
+
+    def test_correct_batch_effects_tpm(self):
+        # large means to trigger the TPM function
+        df = pd.DataFrame([[4, 1, 2], [1, 2, 3], [4, 5, 6]])
+        df2 = preprocess.correct_batch_effects(df)
+        self.assertEquals((3, 3), df2.shape)
+        self.assertAlmostEquals(df2.values[0, 0], 1.4142135623730949)
+        self.assertAlmostEquals(df2.values[1, 0], -1.4142135623730949)
+        self.assertAlmostEquals(df2.values[2, 0], -1.4142135623730949)
+
+        self.assertAlmostEquals(df2.values[0, 1], -0.70710678118654746)
+        self.assertAlmostEquals(df2.values[1, 1], 0.70710678118654746)
+        self.assertAlmostEquals(df2.values[2, 1], 0.70710678118654746)
+
+        self.assertAlmostEquals(df2.values[0, 2], -0.70710678118654746)
+        self.assertAlmostEquals(df2.values[1, 2], 0.70710678118654746)
+        self.assertAlmostEquals(df2.values[2, 2], 0.70710678118654746)
+
+    def test_correct_batch_effects_no_tpm(self):
+        # small means standard deviation
+        df = pd.DataFrame([[0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0.1, 0.1, 0.1]])
+        df2 = preprocess.correct_batch_effects(df)
+        self.assertEquals((3, 3), df2.shape)
+        for i in range(3):
+            for j in range(3):
+                self.assertAlmostEquals(df2.values[i, j], -0.8164965809277261)
+
 if __name__ == '__main__':
     SUITE = []
     SUITE.append(unittest.TestLoader().loadTestsFromTestCase(PreprocessTest))

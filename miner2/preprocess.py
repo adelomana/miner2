@@ -1,6 +1,7 @@
-import numpy,datetime,pandas,sys
+import numpy, datetime, pandas, sys
 from pkg_resources import Requirement, resource_filename
 from collections import Counter
+from scipy import stats
 
 def correct_batch_effects(df):
     zscored_expression = zscore(df)
@@ -12,8 +13,7 @@ def correct_batch_effects(df):
         means.append(mean)
         stds.append(std)
     if numpy.std(means) >= 0.15:
-        # WW: TODO: THIS IS STILL MISSING IN THIS MODULE, BUT IS IN ORIGINAL MINER !!!
-        zscored_expression = preProcessTPM(df)
+        zscored_expression = preprocess_tpm(df)
     return zscored_expression
 
 
@@ -182,3 +182,151 @@ def zscore(expressionData):
         transform = ((expressionData.iloc[passIndex,:].T - means[passIndex])/stds[passIndex]).T
     print("completed z-transformation.")
     return transform
+
+
+def preprocess_tpm(tpm):
+    cutoff = stats.norm.ppf(0.00001)
+    tmp_array_raw = numpy.array(tpm)
+    keep = []
+    keepappend = keep.append
+    for i in range(0,tmp_array_raw.shape[0]):
+        if numpy.count_nonzero(tmp_array_raw[i,:]) >= round(float(tpm.shape[1])*0.5):
+            keepappend(i)
+
+    tpm_zero_filtered = tmp_array_raw[keep,:]
+    tpm_array = numpy.array(tpm_zero_filtered)
+    positive_medians = []
+
+    for i in range(0,tpm_array.shape[1]):
+        tmp1 = tpm_array[:,i][tpm_array[:,i]>0]
+        positive_medians.append(numpy.median(tmp1))
+
+    # 2^10 - 1 = 1023
+    scale_factors = [float(1023)/positive_medians[i] for i in range(0,len(positive_medians))]
+
+    tpm_scale = numpy.zeros(tpm_array.shape)
+    for i in range(0,tpm_scale.shape[1]):
+        tpm_scale[:,i] = tpm_array[:,i]*scale_factors[i]
+
+    tpm_scale_log2 = numpy.zeros(tpm_scale.shape)
+    for i in range(0,tpm_scale_log2.shape[1]):
+        tpm_scale_log2[:,i] = numpy.log2(tpm_scale[:,i]+1)
+
+    tpm_filtered_df = pandas.DataFrame(tpm_scale_log2)
+    tpm_filtered_df.columns = list(tpm.columns)
+    tpm_filtered_df.index = list(numpy.array(tpm.index)[keep])
+
+    qn_tpm_filtered = quantile_norm(tpm_filtered_df,axis=0)
+    qn_tpm = quantile_norm(qn_tpm_filtered,axis=1)
+
+    qn_tpm_array = numpy.array(qn_tpm)
+
+    tpm_z = numpy.zeros(qn_tpm_array.shape)
+    for i in range(0,tpm_z.shape[0]):
+        tmp = qn_tpm_array[i,:][qn_tpm_array[i,:]>0]
+        mean = numpy.mean(tmp)
+        std = numpy.std(tmp)
+        for j in range(0,tpm_z.shape[1]):
+            tpm_z[i,j] = float(qn_tpm_array[i,j] - mean)/std
+            if tpm_z[i,j] < -4:
+                tpm_z[i,j] = cutoff
+
+    tpm_entropy = []
+    for i in range(0,tpm_z.shape[0]):
+        tmp = entropy(tpm_z[i,:])
+        tpm_entropy.append(tmp)
+
+    tpmz_df = pandas.DataFrame(tpm_z)
+    tpmz_df.columns = list(tpm.columns)
+    tpmz_df.index = list(numpy.array(tpm.index)[keep])
+
+
+    ent = pandas.DataFrame(tpm_entropy)
+    ent.index = list(tpmz_df.index)
+    ent.columns = ['entropy']
+
+    tpm_ent_df = pandas.concat([tpmz_df,ent],axis=1)
+
+    tpm_entropy_sorted = tpm_ent_df.sort_values(by='entropy',ascending=False)
+
+    tmp = tpm_entropy_sorted[tpm_entropy_sorted.loc[:,'entropy']>=0]
+    tpm_select = tmp.iloc[:,0:-1]
+
+    return tpm_select
+
+
+def quantile_norm(df,axis=1):
+    import numpy as np
+    import pandas as pd
+    from scipy.stats import rankdata
+
+    if axis == 1:
+        array = np.array(df)
+
+        ranked_array = np.zeros(array.shape)
+        for i in range(0,array.shape[0]):
+            ranked_array[i,:] = rankdata(array[i,:],method='min') - 1
+
+        sorted_array = np.zeros(array.shape)
+        for i in range(0,array.shape[0]):
+            sorted_array[i,:] = np.sort(array[i,:])
+
+        qn_values = np.nanmedian(sorted_array,axis=0)
+
+        quant_norm_array = np.zeros(array.shape)
+        for i in range(0,array.shape[0]):
+            for j in range(0,array.shape[1]):
+                quant_norm_array[i,j] = qn_values[int(ranked_array[i,j])]
+
+        quant_norm = pd.DataFrame(quant_norm_array)
+        quant_norm.columns = list(df.columns)
+        quant_norm.index = list(df.index)
+
+    if axis == 0:
+        array = np.array(df)
+
+        ranked_array = np.zeros(array.shape)
+        for i in range(0,array.shape[1]):
+            ranked_array[:,i] = rankdata(array[:,i],method='min') - 1
+
+        sorted_array = np.zeros(array.shape)
+        for i in range(0,array.shape[1]):
+            sorted_array[:,i] = np.sort(array[:,i])
+
+        qn_values = np.nanmedian(sorted_array,axis=1)
+
+        quant_norm_array = np.zeros(array.shape)
+        for i in range(0,array.shape[0]):
+            for j in range(0,array.shape[1]):
+                quant_norm_array[i,j] = qn_values[int(ranked_array[i,j])]
+
+        quant_norm = pd.DataFrame(quant_norm_array)
+        quant_norm.columns = list(df.columns)
+        quant_norm.index = list(df.index)
+
+    return quant_norm
+
+
+def entropy(vector):
+
+    data = numpy.array(vector)
+    hist = numpy.histogram(data, bins=50)[0]
+    length = len(hist)
+
+    if length <= 1:
+        return 0
+
+    counts = numpy.bincount(hist)
+    probs = [float(i) / length for i in counts]
+    n_classes = numpy.count_nonzero(probs)
+
+    if n_classes <= 1:
+        return 0
+
+    ent = 0.
+
+    # Compute standard entropy.
+    for i in probs:
+        if i > 0:
+            ent -= float(i) * numpy.log(i)
+    return ent
