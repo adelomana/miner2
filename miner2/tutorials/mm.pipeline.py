@@ -10,10 +10,13 @@ import miner2.coexpression
 import miner2.mechanistic_inference
 
 # 0.0. user defined variables
-expression_file='/Volumes/omics4tb2/alomana/projects/miner2/data/IA12Zscore.csv'
-results_dir='/Volumes/omics4tb2/alomana/projects/miner2/results/IA12Zscore/'
+#expression_file='/Volumes/omics4tb2/alomana/projects/miner2/data/IA12Zscore.csv'
+#results_dir='/Volumes/omics4tb2/alomana/projects/miner2/results/IA12Zscore/'
 
-num_cores = 8          # required for coexpression
+expression_file='/Volumes/omics4tb2/alomana/projects/miner2/data/IA12Zscore.lines.10000.csv'
+results_dir='/Volumes/omics4tb2/alomana/projects/miner2/results/IA12Zscore.lines.10000/'
+
+num_cores = 4          # required for coexpression
 min_number_genes = 6   # required for coexpression
 min_correlation = 0.2  # required for mechanistic inference. Bulk RNAseq default=0.2;single cell RNAseq default=0.05
 
@@ -27,7 +30,6 @@ if os.path.exists(results_dir) == False:
 # dill.dump_session(results_dir+'info/bottle.dill')
 # dill.load_session(results_dir+'info/bottle.dill')
 
-"""
 # STEP 0: load the data
 expression_data, conversion_table = miner2.preprocess.main(expression_file)
 
@@ -92,10 +94,9 @@ figure_name=results_dir+'figures/random.coexpression.clusters.pdf'
 matplotlib.pyplot.tight_layout()
 matplotlib.pyplot.savefig(figure_name)
 matplotlib.pyplot.clf()
-"""
 
 # STEP 2: mechanistic inference
-#dill.dump_session(results_dir+'info/bottle.dill')
+dill.dump_session(results_dir+'info/bottle.dill')
 dill.load_session(results_dir+'info/bottle.dill')
 
 # get first principal component axes of clusters
@@ -104,29 +105,9 @@ axes = miner2.mechanistic_inference.get_principal_df(revised_clusters,expression
 # analyze revised clusters for enrichment in relational database 
 mechanistic_output = miner2.mechanistic_inference.enrichment(axes,revised_clusters,expression_data,correlation_threshold=min_correlation,num_cores=num_cores)
 
-# order mechanisticOutput as {tf:{coexpressionModule:genes}} 
-#coregulationModules = miner.getCoregulationModules(mechanisticOutput)
-
-# get final regulons by keeping genes that requently appear coexpressed and associated to a common regulator
-#regulons = miner.getRegulons(coregulationModules,minNumberGenes=minNumberRegulonGenes,freqThreshold = 0.333)
-
-# reformat regulon dictionary for consistency with revisedClusters and coexpressionModules
-#regulonModules, regulonDf = miner.regulonDictionary(regulons)
-
-# define coexpression modules as composite of coexpressed regulons
-#coexpressionModules = miner.getCoexpressionModules(mechanisticOutput)
-
-# reconvert revised clusters to original gene annotations
-#annotatedRevisedClusters = miner.convertDictionary(revisedClusters,conversionTable)
-
-# reconvert results into original annotations
-#regulonAnnotatedDf = miner.convertRegulons(regulonDf,conversionTable)
-
-#reconvert regulons
-#annotatedRegulons = miner.convertDictionary(regulonModules,conversionTable)
-
-#reconvert coexpression modules
-#annotatedCoexpressionModules = miner.convertDictionary(coexpressionModules,conversionTable)
+# STEP 3: network mapping
+dill.dump_session(results_dir+'info/bottle.dill')
+dill.load_session(results_dir+'info/bottle.dill')
 
 
 
