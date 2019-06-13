@@ -44,13 +44,13 @@ if __name__ == '__main__':
     exp_data, conv_table = preprocess.main(args.expfile, args.mapfile)
     t1 = time.time()
     init_clusters = coexpression.cluster(exp_data,
-                                         minNumberGenes=args.mingenes,
-                                         minNumberOverExpSamples=args.minoverexpsamp,
-                                         maxSamplesExcluded=args.maxexclusion,
+                                         min_number_genes=args.mingenes,
+                                         min_number_overexp_samples=args.minoverexpsamp,
+                                         max_samples_excluded=args.maxexclusion,
                                          random_state=args.randstate,
-                                         overExpressionThreshold=args.overexpthresh)
+                                         overexpression_threshold=args.overexpthresh)
 
-    revised_clusters = coexpression.reviseInitialClusters(init_clusters, exp_data)
+    revised_clusters = coexpression.revise_initial_clusters(init_clusters, exp_data)
     with open(os.path.join(args.outdir, "coexpressionDictionary.json"), 'w') as out:
         json.dump(revised_clusters, out)
 
