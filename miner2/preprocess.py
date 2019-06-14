@@ -2,6 +2,7 @@ import numpy, datetime, pandas, sys
 from pkg_resources import Requirement, resource_filename
 from collections import Counter
 from scipy import stats
+from scipy.stats import rankdata
 
 def correct_batch_effects(df):
     zscored_expression = zscore(df)
@@ -256,51 +257,48 @@ def preprocess_tpm(tpm):
 
 
 def quantile_norm(df,axis=1):
-    import numpy as np
-    import pandas as pd
-    from scipy.stats import rankdata
 
     if axis == 1:
-        array = np.array(df)
+        array = numpy.array(df)
 
-        ranked_array = np.zeros(array.shape)
+        ranked_array = numpy.zeros(array.shape)
         for i in range(0,array.shape[0]):
             ranked_array[i,:] = rankdata(array[i,:],method='min') - 1
 
-        sorted_array = np.zeros(array.shape)
+        sorted_array = numpy.zeros(array.shape)
         for i in range(0,array.shape[0]):
-            sorted_array[i,:] = np.sort(array[i,:])
+            sorted_array[i,:] = numpy.sort(array[i,:])
 
-        qn_values = np.nanmedian(sorted_array,axis=0)
+        qn_values = numpy.nanmedian(sorted_array,axis=0)
 
-        quant_norm_array = np.zeros(array.shape)
+        quant_norm_array = numpy.zeros(array.shape)
         for i in range(0,array.shape[0]):
             for j in range(0,array.shape[1]):
                 quant_norm_array[i,j] = qn_values[int(ranked_array[i,j])]
 
-        quant_norm = pd.DataFrame(quant_norm_array)
+        quant_norm = pandas.DataFrame(quant_norm_array)
         quant_norm.columns = list(df.columns)
         quant_norm.index = list(df.index)
 
     if axis == 0:
-        array = np.array(df)
+        array = numpy.array(df)
 
-        ranked_array = np.zeros(array.shape)
+        ranked_array = numpy.zeros(array.shape)
         for i in range(0,array.shape[1]):
             ranked_array[:,i] = rankdata(array[:,i],method='min') - 1
 
-        sorted_array = np.zeros(array.shape)
+        sorted_array = numpy.zeros(array.shape)
         for i in range(0,array.shape[1]):
-            sorted_array[:,i] = np.sort(array[:,i])
+            sorted_array[:,i] = numpy.sort(array[:,i])
 
-        qn_values = np.nanmedian(sorted_array,axis=1)
+        qn_values = numpy.nanmedian(sorted_array,axis=1)
 
-        quant_norm_array = np.zeros(array.shape)
+        quant_norm_array = numpy.zeros(array.shape)
         for i in range(0,array.shape[0]):
             for j in range(0,array.shape[1]):
                 quant_norm_array[i,j] = qn_values[int(ranked_array[i,j])]
 
-        quant_norm = pd.DataFrame(quant_norm_array)
+        quant_norm = pandas.DataFrame(quant_norm_array)
         quant_norm.columns = list(df.columns)
         quant_norm.index = list(df.index)
 
