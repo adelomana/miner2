@@ -6,24 +6,24 @@ from pkg_resources import Requirement, resource_filename
 import miner2.coexpression
 
 def axis_tfs(axes_df,tf_list,expression_data,correlation_threshold=0.3):
-    
+
     axes_array = numpy.array(axes_df.T)
     if correlation_threshold > 0:
         tf_array=numpy.array(expression_data.reindex(tf_list)) # ALO Py3
     axes = numpy.array(axes_df.columns)
     tf_dict = {}
-    
+
     if type(tf_list) is list:
         tfs = numpy.array(tf_list)
     elif type(tf_list) is not list:
         tfs = tf_list
-        
+
     if correlation_threshold == 0:
         for axis in range(axes_array.shape[0]):
             tf_dict[axes[axis]] = tfs
 
         return tf_dict
-    
+
     for axis in range(axes_array.shape[0]):
         tf_correlation = miner2.coexpression.pearson_array(tf_array,axes_array[axis,:])
         ### ALO, fixed warning over nan evaluations
@@ -31,13 +31,13 @@ def axis_tfs(axes_df,tf_list,expression_data,correlation_threshold=0.3):
         condition2=numpy.isnan(tf_correlation)
         tf_dict[axes[axis]]=tfs[numpy.where(numpy.bitwise_and(condition1 == True, condition2 == False))[0]]
         ### end ALO
-    
+
     return tf_dict
 
 def enrichment(axes,revised_clusters,expression_data,correlation_threshold=0.3,num_cores=1,p=0.05,database="tfbsdb_tf_to_genes.pkl"):
-    
+
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t mechanistic inference"))
-    
+
     tf_2_genes_path = resource_filename(Requirement.parse("miner2"), 'miner2/data/{}'.format(database))
     with open(tf_2_genes_path, 'rb') as f:
         tf_2_genes = pickle.load(f)
@@ -46,7 +46,7 @@ def enrichment(axes,revised_clusters,expression_data,correlation_threshold=0.3,n
         all_genes = [int(len(expression_data.index))]
     elif correlation_threshold > 0:
         all_genes = list(expression_data.index)
-        
+
     tfs = list(tf_2_genes.keys())
     tf_map = axis_tfs(axes,tfs,expression_data,correlation_threshold=correlation_threshold)
 
@@ -70,13 +70,13 @@ def enrichment(axes,revised_clusters,expression_data,correlation_threshold=0.3,n
     return mechanistic_output
 
 def hyper(population,set1,set2,overlap):
-    
+
     b = max(set1,set2)
     c = min(set1,set2)
     hyp = scipy.stats.hypergeom(population,b,c)
     prb = sum([hyp.pmf(l) for l in range(overlap,c+1)])
-    
-    return prb 
+
+    return prb
 
 def get_principal_df(revised_clusters,expression_data,regulons=None,subkey='genes',min_number_genes=8,random_state=12):
 
@@ -84,7 +84,7 @@ def get_principal_df(revised_clusters,expression_data,regulons=None,subkey='gene
 
     pc_Dfs = []
     set_index = set(expression_data.index)
-    
+
     if regulons is not None:
         revised_clusters, df = get_regulon_dictionary(regulons)
     for i in revised_clusters.keys():
@@ -96,23 +96,23 @@ def get_principal_df(revised_clusters,expression_data,regulons=None,subkey='gene
             genes = list(set(revised_clusters[i])&set_index)
             if len(genes) < min_number_genes:
                 continue
-            
+
         pca = sklearn.decomposition.PCA(1,random_state=random_state)
         principal_components = pca.fit_transform(expression_data.loc[genes,:].T)
         principal_Df = pandas.DataFrame(principal_components)
         principal_Df.index = expression_data.columns
         principal_Df.columns = [str(i)]
-        
+
         norm_PC = numpy.linalg.norm(numpy.array(principal_Df.iloc[:,0]))
         pearson = scipy.stats.pearsonr(principal_Df.iloc[:,0],numpy.median(expression_data.loc[genes,:],axis=0))
         sign_correction = pearson[0]/numpy.abs(pearson[0])
-        
+
         principal_Df = sign_correction*principal_Df/norm_PC
-        
+
         pc_Dfs.append(principal_Df)
-    
+
     principal_matrix = pandas.concat(pc_Dfs,axis=1)
-        
+
     return principal_matrix
 
 def get_regulon_dictionary(regulons):
@@ -130,7 +130,7 @@ def get_regulon_dictionary(regulons):
     array = numpy.vstack(df_list)
     df = pandas.DataFrame(array)
     df.columns = ["Regulon_ID","Regulator","Gene"]
-    
+
     return regulonModules, df
 
 def tfbsdb_enrichment(task):
@@ -145,8 +145,8 @@ def tfbsdb_enrichment(task):
     population_size = len(all_genes)
 
     cluster_tfs = {}
-    for tf in tf_map[str(cluster_key)]:    
-        hits0_tf_targets = tf_2_genes[tf]  
+    for tf in tf_map[str(cluster_key)]:
+        hits0_tf_targets = tf_2_genes[tf]
         hits0_cluster_genes = revised_clusters[cluster_key]
         overlap_cluster = list(set(hits0_tf_targets)&set(hits0_cluster_genes))
         if len(overlap_cluster) <= 1:
