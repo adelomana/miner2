@@ -12,6 +12,7 @@ import matplotlib
 matplotlib.use('Agg')
 from miner2 import miner
 from miner2 import preprocess
+from miner2 import mechanistic_inference
 
 DESCRIPTION = """miner-mechinf - MINER compute mechanistic inference"""
 NUM_CORES = 5
@@ -49,12 +50,21 @@ if __name__ == '__main__':
 
     # get first principal component axes of clusters
     t1 = time.time()
-    axes = miner.principalDf(revised_clusters, exp_data, subkey=None, minNumberGenes=1)
+    axes = mechanistic_inference.get_principal_df(revised_clusters, exp_data,
+                                                  subkey=None, min_number_genes=1)
+
     # analyze revised clusters for enrichment in relational database (default: transcription factor binding site database)
     mechanistic_output = miner.mechanisticInference(axes, revised_clusters, exp_data,
                                                     correlationThreshold=args.mincorr,
                                                     numCores=NUM_CORES,
                                                     dataFolder=args.datadir)
+    """
+    mechanistic_output = mechanistic_inference.enrichment(axes, revised_clusters, exp_data,
+                                                          correlationThreshold=args.mincorr,
+                                                          numCores=NUM_CORES,
+                                                          dataFolder=args.datadir)
+    """
+
     # write mechanistic output to .json file
     miner.write_json(mechanistic_output, os.path.join(args.outdir, "mechanisticOutput.json"))
 

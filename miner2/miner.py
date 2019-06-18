@@ -1072,7 +1072,7 @@ def mechanisticInference(axes,revisedClusters,expressionData,correlationThreshol
     print('Running mechanistic inference')
     
     if override_database is None:
-        tfToGenesPath = os.path.join(dataFolder,"network_dictionaries",database)
+        tfToGenesPath = os.path.join(dataFolder, database)
         tfToGenes = read_pkl(tfToGenesPath)
         
     elif override_database is not None:
