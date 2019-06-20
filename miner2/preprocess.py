@@ -4,6 +4,8 @@ from collections import Counter
 from scipy import stats
 from scipy.stats import rankdata
 
+import logging
+
 def correct_batch_effects(df):
     zscored_expression = zscore(df)
     means = []
@@ -103,7 +105,8 @@ def identifier_conversion(expression_data, conversion_table_path=None):
 
     corrections = []
 
-    print("WARNING: There were %d ambiguously mapped genes !" % len(duplicates))
+    if len(duplicates) > 0:
+        logging.warn("There were %d ambiguously mapped genes !", len(duplicates))
 
     # WW: The way duplicates are resolved is by retrieving the duplicate rows
     # as individual DataFrames and picking the first one
@@ -120,26 +123,27 @@ def identifier_conversion(expression_data, conversion_table_path=None):
         uncorrected_data = converted_data.loc[singles,:]
         converted_data = pandas.concat([uncorrected_data, corrections_df], axis=0)
 
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t {} out of {} gene names converted to ENSEMBL IDs".format(converted_data.shape[0], expression_data.shape[0])))
+    logging.info("{} out of {} gene names converted to ENSEMBL IDs".format(converted_data.shape[0], expression_data.shape[0]))
 
     return converted_data, conversion_table
 
 
 def main(filename, conversion_table_path=None):
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data reading"))
+    logging.info("expression data reading")
+
     raw_expression = read_file_to_df(filename)
 
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data recovered: {} features by {} samples".format(raw_expression.shape[0], raw_expression.shape[1])))
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t expression data transformation"))
+    logging.info("expression data recovered: {} features by {} samples".format(raw_expression.shape[0], raw_expression.shape[1]))
+    logging.info("expression data transformation")
 
     raw_expression_zero_filtered = remove_null_rows(raw_expression)
     zscored_expression = correct_batch_effects(raw_expression_zero_filtered)
 
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t gene ID conversion"))
+    logging.info("gene ID conversion")
     expression_data, conversion_table = identifier_conversion(zscored_expression,
                                                               conversion_table_path)
 
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t working expression data: {} features by {} samples".format(expression_data.shape[0], expression_data.shape[1])))
+    logging.info("working expression data: {} features by {} samples".format(expression_data.shape[0], expression_data.shape[1]))
 
     return expression_data, conversion_table
 
