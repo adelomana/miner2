@@ -66,6 +66,8 @@ matplotlib.pyplot.tight_layout()
 matplotlib.pyplot.savefig(figure_name)
 matplotlib.pyplot.clf()
 
+sys.exit()
+
 # STEP 1: clustering
 initial_clusters = miner2.coexpression.cluster(expression_data,min_number_genes=min_number_genes,num_cores=num_cores)
 revised_clusters = miner2.coexpression.revise_initial_clusters(initial_clusters,expression_data)
