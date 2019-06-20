@@ -10,6 +10,8 @@ import time
 
 import matplotlib
 matplotlib.use('Agg')
+import logging
+
 from miner2 import miner
 from miner2 import preprocess
 from miner2 import mechanistic_inference
@@ -19,6 +21,10 @@ NUM_CORES = 5
 MIN_REGULON_GENES = 5
 
 if __name__ == '__main__':
+    LOG_FORMAT = '%(asctime)s %(message)s'
+    logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG,
+                        datefmt='%Y-%m-%d %H:%M:%S \t')
+
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=DESCRIPTION)
     parser.add_argument('expfile', help="input matrix")
@@ -54,26 +60,28 @@ if __name__ == '__main__':
                                                   subkey=None, min_number_genes=1)
 
     # analyze revised clusters for enrichment in relational database (default: transcription factor binding site database)
+    """
     mechanistic_output = miner.mechanisticInference(axes, revised_clusters, exp_data,
                                                     correlationThreshold=args.mincorr,
                                                     numCores=NUM_CORES,
                                                     dataFolder=args.datadir)
     """
+    database_path = os.path.join(args.datadir, "tfbsdb_tf_to_genes.pkl")
     mechanistic_output = mechanistic_inference.enrichment(axes, revised_clusters, exp_data,
-                                                          correlationThreshold=args.mincorr,
-                                                          numCores=NUM_CORES,
-                                                          dataFolder=args.datadir)
-    """
+                                                          correlation_threshold=args.mincorr,
+                                                          num_cores=NUM_CORES,
+                                                          database_path=database_path)
 
     # write mechanistic output to .json file
-    miner.write_json(mechanistic_output, os.path.join(args.outdir, "mechanisticOutput.json"))
+    with open(os.path.join(args.outdir, "mechanisticOutput.json"), 'w') as outfile:
+        json.dump(mechanistic_output, outfile)
 
     # order mechanisticOutput as {tf:{coexpressionModule:genes}}
     coregulation_modules = miner.getCoregulationModules(mechanistic_output)
 
     # write coregulation modules to .json file
-    miner.write_json(coregulation_modules,
-                     os.path.join(args.outdir, "coregulationModules.json"))
+    with open(os.path.join(args.outdir, "coregulationModules.json"), 'w') as outfile:
+        json.dump(coregulation_modules, outfile)
 
     # get final regulons by keeping genes that requently appear coexpressed and associated
     # to a common regulator
@@ -120,5 +128,5 @@ if __name__ == '__main__':
 
 
     t2 = time.time()
-    print("Completed mechanistic inference in {:.2f} minutes".format((t2 - t1) / 60.))
-    print("Inferred network with {:d} regulons, {:d} regulators, and {:d} co-regulated genes".format(len(regulon_df.Regulon_ID.unique()), len(regulon_df.Regulator.unique()),len(regulon_df.Gene.unique())))
+    logging.info("Completed mechanistic inference in {:.2f} minutes".format((t2 - t1) / 60.))
+    logging.info("Inferred network with {:d} regulons, {:d} regulators, and {:d} co-regulated genes".format(len(regulon_df.Regulon_ID.unique()), len(regulon_df.Regulator.unique()),len(regulon_df.Gene.unique())))

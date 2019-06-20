@@ -3,6 +3,8 @@ import sklearn,sklearn.decomposition
 import scipy,scipy.stats
 import multiprocessing
 from pkg_resources import Requirement, resource_filename
+import logging
+
 import miner2.coexpression
 
 def axis_tfs(axes_df,tf_list,expression_data,correlation_threshold=0.3):
@@ -34,11 +36,19 @@ def axis_tfs(axes_df,tf_list,expression_data,correlation_threshold=0.3):
 
     return tf_dict
 
-def enrichment(axes,revised_clusters,expression_data,correlation_threshold=0.3,num_cores=1,p=0.05,database="tfbsdb_tf_to_genes.pkl"):
+def enrichment(axes, revised_clusters, expression_data, correlation_threshold=0.3,
+               num_cores=1, p=0.05,
+               database="tfbsdb_tf_to_genes.pkl",
+               database_path=None):
 
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t mechanistic inference"))
+    logging.info("mechanistic inference")
 
-    tf_2_genes_path = resource_filename(Requirement.parse("miner2"), 'miner2/data/{}'.format(database))
+    if database_path is None:
+        tf_2_genes_path = resource_filename(Requirement.parse("miner2"),
+                                            'miner2/data/{}'.format(database))
+    else:
+        tf_2_genes_path = database_path
+
     with open(tf_2_genes_path, 'rb') as f:
         tf_2_genes = pickle.load(f)
 
@@ -48,26 +58,24 @@ def enrichment(axes,revised_clusters,expression_data,correlation_threshold=0.3,n
         all_genes = list(expression_data.index)
 
     tfs = list(tf_2_genes.keys())
-    tf_map = axis_tfs(axes,tfs,expression_data,correlation_threshold=correlation_threshold)
+    tf_map = axis_tfs(axes, tfs, expression_data, correlation_threshold=correlation_threshold)
 
-    tasks=[[cluster_key,(all_genes,revised_clusters,tf_map,tf_2_genes,p)] for cluster_key in list(revised_clusters.keys())]
+    tasks = [[cluster_key,(all_genes,revised_clusters,tf_map,tf_2_genes,p)]
+             for cluster_key in list(revised_clusters.keys())]
 
-    hydra=multiprocessing.pool.Pool(num_cores)
-    results=hydra.map(tfbsdb_enrichment,tasks)
+    hydra = multiprocessing.pool.Pool(num_cores)
+    results = hydra.map(tfbsdb_enrichment, tasks)
 
-    mechanistic_output={}
+    mechanistic_output = {}
     for result in results:
         for key in result.keys():
             if key not in mechanistic_output:
                 mechanistic_output[key]=result[key]
             else:
-                print('key twice')
-                sys.exit()
-    print('completed')
-
-    sys.exit()
+                raise Exception('key "%s" twice' % key)
 
     return mechanistic_output
+
 
 def hyper(population,set1,set2,overlap):
 
@@ -80,7 +88,7 @@ def hyper(population,set1,set2,overlap):
 
 def get_principal_df(revised_clusters,expression_data,regulons=None,subkey='genes',min_number_genes=8,random_state=12):
 
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S \t preparing mechanistic inference"))
+    logging.info("preparing mechanistic inference")
 
     pc_Dfs = []
     set_index = set(expression_data.index)
