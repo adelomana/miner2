@@ -80,7 +80,7 @@ def identifier_conversion(expression_data, conversion_table_path=None):
     try:
         converted_data = expression_data.loc[mapped_genes,:]
     except Exception as e:
-        print(e)
+        logging.error(e)
         converted_data = expression_data.loc[numpy.array(mapped_genes).astype(int),:]
 
     conversion_table = subset.loc[mapped_genes,:]
@@ -185,7 +185,7 @@ def zscore(expressionData):
     except:
         passIndex = numpy.where(stds>0)[0]
         transform = ((expressionData.iloc[passIndex,:].T - means[passIndex])/stds[passIndex]).T
-    print("completed z-transformation.")
+    logging.info("completed z-transformation.")
     return transform
 
 

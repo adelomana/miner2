@@ -10,6 +10,7 @@ import time
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import logging
 
 from miner2 import coexpression
 from miner2 import preprocess
@@ -17,6 +18,10 @@ from miner2 import preprocess
 DESCRIPTION = """miner-coexpr - MINER cluster expression data."""
 
 if __name__ == '__main__':
+    LOG_FORMAT = '%(asctime)s %(message)s'
+    logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG,
+                        datefmt='%Y-%m-%d %H:%M:%S \t')
+
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=DESCRIPTION)
     parser.add_argument('expfile', help="input matrix")
@@ -81,11 +86,11 @@ if __name__ == '__main__':
                 bbox_inches="tight")
 
     # report coverage
-    print("Number of genes clustered: {:d}".format(len(set(np.hstack(init_clusters)))))
-    print("Number of unique clusters: {:d}".format(len(revised_clusters)))
+    logging.info("Number of genes clustered: {:d}".format(len(set(np.hstack(init_clusters)))))
+    logging.info("Number of unique clusters: {:d}".format(len(revised_clusters)))
 
     t2 = time.time()
-    print("Completed clustering module in {:.2f} minutes".format((t2-t1)/60.))
+    logging.info("Completed clustering module in {:.2f} minutes".format((t2-t1)/60.))
 
     """
 
@@ -99,8 +104,8 @@ if __name__ == '__main__':
     plt.title("First 10 clusters", FontSize=20)
 
     # report coverage
-    #print("Number of genes clustered: {:d}".format(len(set(np.hstack(initialClusters)))))
-    #print("Number of unique clusters: {:d}".format(len(revisedClusters)))
+    #logging.info("Number of genes clustered: {:d}".format(len(set(np.hstack(initialClusters)))))
+    #logging.info("Number of unique clusters: {:d}".format(len(revisedClusters)))
 
     # plot histogram of the cluster size distribution
     counts_ = plt.hist([len(revised_clusters[key]) for key in revised_clusters.keys()],

@@ -4,6 +4,7 @@ import unittest
 
 import pandas as pd
 from miner2 import preprocess
+import logging
 
 class PreprocessTest(unittest.TestCase):
 
@@ -58,6 +59,9 @@ class PreprocessTest(unittest.TestCase):
 
 if __name__ == '__main__':
     SUITE = []
+    LOG_FORMAT = '%(asctime)s %(message)s'
+    logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG,
+                        datefmt='%Y-%m-%d %H:%M:%S \t')
     SUITE.append(unittest.TestLoader().loadTestsFromTestCase(PreprocessTest))
     if len(sys.argv) > 1 and sys.argv[1] == 'xml':
       xmlrunner.XMLTestRunner(output='test-reports').run(unittest.TestSuite(SUITE))

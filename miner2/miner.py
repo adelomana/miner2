@@ -1084,7 +1084,8 @@ def mechanisticInference(axes,revisedClusters,expressionData,correlationThreshol
         allGenes = list(expressionData.index)
         
     tfs = tfToGenes.keys()     
-    tfMap = axisTfs(axes,tfs,expressionData,correlationThreshold=correlationThreshold) 
+    tfMap = axisTfs(axes,tfs,expressionData,correlationThreshold=correlationThreshold)
+
     taskSplit = splitForMultiprocessing(revisedClusters.keys(),numCores)
     tasks = [[taskSplit[i],(allGenes,revisedClusters,tfMap,tfToGenes,p)] for i in range(len(taskSplit))]
     tfbsdbOutput = multiprocess(tfbsdbEnrichment,tasks)
