@@ -1,4 +1,4 @@
-import numpy, datetime, pandas, sys
+import numpy,datetime,pandas,sys,datetime,os
 from pkg_resources import Requirement, resource_filename
 from collections import Counter
 from scipy import stats
@@ -19,18 +19,30 @@ def correct_batch_effects(df):
         zscored_expression = preprocess_tpm(df)
     return zscored_expression
 
-
 def identifier_conversion(expression_data, conversion_table_path=None):
 
     # if not specified, read conversion table from package data
     if conversion_table_path is None:
-        conversion_table_path = resource_filename(Requirement.parse("miner2"),
-                                                  'miner2/data/identifier_mappings.txt')
+        conversion_table_path = resource_filename(Requirement.parse("miner2"),'miner2/data/identifier_mappings.txt')
 
-    id_map = pandas.read_csv(conversion_table_path, sep='\t')
+    id_map = pandas.read_csv(conversion_table_path,sep='\t')
 
     gene_types = list(set(id_map.iloc[:,2]))
-    previous_index = numpy.array(expression_data.index).astype(str)
+
+    ### ALO.2019.06.19. Addressing dot transcripts in ENSEMBL annotations from GDC portal
+    #previous_index = numpy.array(expression_data.index).astype(str) # this line is obsolete. Kept for reference. To be removed in the future
+    original_IDs=numpy.array(expression_data.index).astype(str)
+    logging.info('evaluate removing transcript isoform information')
+    original_IDs_list=list(original_IDs)
+    original_annotation=numpy.array([element.split('.')[0] for element in original_IDs_list])
+    if original_IDs.shape == original_annotation.shape:
+        logging.info('no information loss')
+        substitution={element:element.split('.')[0] for element in original_IDs_list}
+        expression_data.rename(index=substitution,inplace=True)
+    else:
+        logging.warn('some gene IDs have multiple transcript isoforms. Initial {} versus new {} dimensions'.format(original_IDs.shape,original_annotation.shape))
+    ### end ALO
+
     previous_columns = numpy.array(expression_data.columns).astype(str)
     best_match = []
 
@@ -44,10 +56,11 @@ def identifier_conversion(expression_data, conversion_table_path=None):
     #
     # The code seems to have multiple issues, and is very sensitive to changes
     # we should see if we can simplify it
+
     for gene_type in gene_types:
         subset = id_map[id_map.iloc[:,2] == gene_type]
         subset.index = subset.iloc[:,1]
-        mapped_genes = list(set(previous_index) & set(subset.index))
+        mapped_genes = list(set(original_annotation) & set(subset.index))
         mapped_samples = list(set(previous_columns) & set(subset.index))
 
         if len(mapped_genes) >= max(10, 0.01 * expression_data.shape[0]):
@@ -55,6 +68,7 @@ def identifier_conversion(expression_data, conversion_table_path=None):
                 best_match = mapped_genes
                 state = "original"
                 gtype = gene_type
+                logging.info('expression data arrangement detected: genes as rows ({}) and samples as columns ({})'.format(expression_data.shape[0],expression_data.shape[1]))
                 continue
 
         if len(mapped_samples) >= max(10, 0.01 * expression_data.shape[1]):
@@ -62,6 +76,7 @@ def identifier_conversion(expression_data, conversion_table_path=None):
                 best_match = mapped_samples
                 state = "transpose"
                 gtype = gene_type
+                logging.info('expression data arrangement detected: genes as columns ({}) and samples as rows ({})'.format(expression_data.shape[0],expression_data.shape[1]))
                 continue
 
     if len(best_match) == 0:
@@ -75,13 +90,10 @@ def identifier_conversion(expression_data, conversion_table_path=None):
     subset.index = subset.iloc[:,1]
 
     if state == "transpose":
+        logging.info('transpose expression data')
         expression_data = expression_data.T
 
-    try:
-        converted_data = expression_data.loc[mapped_genes,:]
-    except Exception as e:
-        logging.error(e)
-        converted_data = expression_data.loc[numpy.array(mapped_genes).astype(int),:]
+    converted_data = expression_data.loc[mapped_genes,:]
 
     conversion_table = subset.loc[mapped_genes,:]
     conversion_table.index = conversion_table.iloc[:,0]
@@ -125,27 +137,73 @@ def identifier_conversion(expression_data, conversion_table_path=None):
 
     logging.info("{} out of {} gene names converted to ENSEMBL IDs".format(converted_data.shape[0], expression_data.shape[0]))
 
-    return converted_data, conversion_table
+    return converted_data,conversion_table
 
+def entropy(vector):
 
-def main(filename, conversion_table_path=None):
-    logging.info("expression data reading")
+    data = numpy.array(vector)
+    hist = numpy.histogram(data, bins=50)[0]
+    length = len(hist)
 
-    raw_expression = read_file_to_df(filename)
+    if length <= 1:
+        return 0
 
+    counts = numpy.bincount(hist)
+    probs = [float(i) / length for i in counts]
+    n_classes = numpy.count_nonzero(probs)
+
+    if n_classes <= 1:
+        return 0
+
+    ent = 0.
+
+    # Compute standard entropy.
+    for i in probs:
+        if i > 0:
+            ent -= float(i) * numpy.log(i)
+    return ent
+
+def main(input_path,conversion_table_path=None):
+
+    # first detect if it's a dir or a file to parse data differently
+    if os.path.isfile(input_path) == True:
+        logging.info('detected expression data file')
+        raw_expression = read_file_to_df(input_path)
+    elif os.path.isdir(input_path) == True:
+        logging.info('detected folder from GDC')
+        raw_expression_data = read_expression_from_GDC_download(input_path)
+        raw_expression = transform_to_FPKM(raw_expression_data,fpkm_threshold=1,min_fraction_above_threshold=0.5,highly_expressed=False)
+    else:
+        raise Exception("Error: Unable to identify if input path is directory or expression file.")
     logging.info("expression data recovered: {} features by {} samples".format(raw_expression.shape[0], raw_expression.shape[1]))
-    logging.info("expression data transformation")
 
+    # data transformations
+    logging.info("expression data transformation")
     raw_expression_zero_filtered = remove_null_rows(raw_expression)
     zscored_expression = correct_batch_effects(raw_expression_zero_filtered)
 
-    logging.info("gene ID conversion")
-    expression_data, conversion_table = identifier_conversion(zscored_expression,
-                                                              conversion_table_path)
-
+    ("gene ID conversion")
+    expression_data, conversion_table = identifier_conversion(zscored_expression,conversion_table_path)
     logging.info("working expression data: {} features by {} samples".format(expression_data.shape[0], expression_data.shape[1]))
 
     return expression_data, conversion_table
+
+def read_expression_from_GDC_download(directory):
+
+    sample_dfs=[]
+    for dirName, subdirList, fileList in os.walk(directory):
+        for fname in fileList:
+            if fname[0] != '.':
+                extension=fname.split(".")[-1]
+                if extension == 'gz':
+                    path=os.path.join(directory,dirName,fname)
+                    df=pandas.read_csv(path,compression='gzip',index_col=0,header=None,sep='\t',quotechar='"')
+                    df.columns=[fname.split(".")[0]]
+                    sample_dfs.append(df)
+
+    expressionData = pandas.concat(sample_dfs,axis=1)
+
+    return expressionData
 
 
 def read_file_to_df(filename):
@@ -171,22 +229,6 @@ def remove_null_rows(df):
     else:
         filtered_df = df
     return filtered_df
-
-
-def zscore(expressionData):
-    zero = numpy.percentile(expressionData,0)
-    meanCheck = numpy.mean(expressionData[expressionData>zero].mean(axis=1,skipna=True))
-    if meanCheck<0.1:
-        return expressionData
-    means = expressionData.mean(axis=1,skipna=True)
-    stds = expressionData.std(axis=1,skipna=True)
-    try:
-        transform = ((expressionData.T - means)/stds).T
-    except:
-        passIndex = numpy.where(stds>0)[0]
-        transform = ((expressionData.iloc[passIndex,:].T - means[passIndex])/stds[passIndex]).T
-    logging.info("completed z-transformation.")
-    return transform
 
 
 def preprocess_tpm(tpm):
@@ -308,27 +350,46 @@ def quantile_norm(df,axis=1):
 
     return quant_norm
 
+def transform_to_FPKM(expression_data,fpkm_threshold=1,min_fraction_above_threshold=0.5,highly_expressed=False,quantile_normalize=False):
 
-def entropy(vector):
+    median = numpy.median(numpy.median(expression_data,axis=1))
+    expDataCopy = expression_data.copy()
+    expDataCopy[expDataCopy<fpkm_threshold]=0
+    expDataCopy[expDataCopy>0]=1
+    cnz = numpy.count_nonzero(expDataCopy,axis=1)
+    keepers = numpy.where(cnz>=int(min_fraction_above_threshold*expDataCopy.shape[1]))[0]
+    threshold_genes = expression_data.index[keepers]
+    expDataFiltered = expression_data.loc[threshold_genes,:]
 
-    data = numpy.array(vector)
-    hist = numpy.histogram(data, bins=50)[0]
-    length = len(hist)
+    if highly_expressed is True:
+        median = numpy.median(numpy.median(expDataFiltered,axis=1))
+        expDataCopy = expDataFiltered.copy()
+        expDataCopy[expDataCopy<median]=0
+        expDataCopy[expDataCopy>0]=1
+        cnz = numpy.count_nonzero(expDataCopy,axis=1)
+        keepers = numpy.where(cnz>=int(0.5*expDataCopy.shape[1]))[0]
+        median_filtered_genes = expDataFiltered.index[keepers]
+        expDataFiltered = expression_data.loc[median_filtered_genes,:]
 
-    if length <= 1:
-        return 0
+    if quantile_normalize is True:
+        expDataFiltered = quantile_norm(expDataFiltered,axis=0)
 
-    counts = numpy.bincount(hist)
-    probs = [float(i) / length for i in counts]
-    n_classes = numpy.count_nonzero(probs)
+    finalExpData = pandas.DataFrame(numpy.log2(expDataFiltered+1))
+    finalExpData.index = expDataFiltered.index
+    finalExpData.columns = expDataFiltered.columns
 
-    if n_classes <= 1:
-        return 0
+    return finalExpData
 
-    ent = 0.
-
-    # Compute standard entropy.
-    for i in probs:
-        if i > 0:
-            ent -= float(i) * numpy.log(i)
-    return ent
+def zscore(expressionData):
+    zero = numpy.percentile(expressionData,0)
+    meanCheck = numpy.mean(expressionData[expressionData>zero].mean(axis=1,skipna=True))
+    if meanCheck<0.1:
+        return expressionData
+    means = expressionData.mean(axis=1,skipna=True)
+    stds = expressionData.std(axis=1,skipna=True)
+    try:
+        transform = ((expressionData.T - means)/stds).T
+    except:
+        passIndex = numpy.where(stds>0)[0]
+        transform = ((expressionData.iloc[passIndex,:].T - means[passIndex])/stds[passIndex]).T
+    return transform
