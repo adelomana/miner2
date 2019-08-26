@@ -165,8 +165,10 @@ def entropy(vector):
 
 def main(input_path,conversion_table_path=None):
 
-    # first detect if it's a dir or a file to parse data differently
-    if os.path.isfile(input_path) == True:
+    # first detect if it's a dataframe or dir or a file to parse data differently
+    if isinstance(input, pandas.DataFrame):
+        raw_expression = input
+    elif os.path.isfile(input_path) == True:
         logging.info('detected expression data file')
         raw_expression = read_file_to_df(input_path)
     elif os.path.isdir(input_path) == True:
