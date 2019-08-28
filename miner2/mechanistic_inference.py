@@ -39,7 +39,8 @@ def axis_tfs(axes_df,tf_list,expression_data,correlation_threshold=0.3):
 def enrichment(axes, revised_clusters, expression_data, correlation_threshold=0.3,
                num_cores=1, p=0.05,
                database="tfbsdb_tf_to_genes.pkl",
-               database_path=None):
+               database_path=None,
+               single_cell=False):
 
     logging.info("mechanistic inference")
 
@@ -51,6 +52,16 @@ def enrichment(axes, revised_clusters, expression_data, correlation_threshold=0.
 
     with open(tf_2_genes_path, 'rb') as f:
         tf_2_genes = pickle.load(f)
+
+    if single_cell:
+        # clean tf_2_genes to only include genes in revised_clusters
+        revised_clusters_gene_set = set()
+        for key in revised_clusters:
+            revised_clusters_gene_set.update(revised_clusters[key])
+        for key in tf_2_genes:
+            genes = tf_2_genes[key]
+            new_genes = [gene for gene in genes if gene in revised_clusters_gene_set]
+            tf_2_genes.update({key: new_genes})
 
     if correlation_threshold <= 0:
         all_genes = [int(len(expression_data.index))]

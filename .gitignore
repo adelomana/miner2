@@ -3,3 +3,4 @@ minerData
 dist
 build
 *.egg-info
+.idea
