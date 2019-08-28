@@ -95,6 +95,7 @@ if __name__ == '__main__':
                                               cmap="bwr", aspect="auto",
                                               saveFile=os.path.join(args.outdir,
                                                                     "centroid_clusters_heatmap.pdf"))
+    ordered_dm.to_csv('subtypes_ordered_dm.csv')  # WW: Debug
 
     # Infer transcriptional programs and states
     programs, states = miner.mosaic(dfr=ordered_dm, clusterList=centroid_clusters,
@@ -111,6 +112,12 @@ if __name__ == '__main__':
                                                                                regulon_modules)
     program_list = [program_regulons[("").join(["TP",str(i)])]
                     for i in range(len(program_regulons))]
+
+    # WW: DEBUG
+    with open('subtypes_program_list.json', 'w') as outfile:
+        json.dump(program_list, outfile)
+    with open('subtypes_states.json', 'w') as outfile:
+        json.dump(list(np.hstack(states)), outfile)
 
     mosaic_df = ordered_dm.loc[np.hstack(program_list), np.hstack(states)]
     mosaic_df.to_csv(os.path.join(args.outdir, "regulons_activity_heatmap.csv"))
