@@ -150,7 +150,7 @@ def get_regulon_dictionary(regulons):
     df = pandas.DataFrame(array)
     df.columns = ["Regulon_ID","Regulator","Gene"]
 
-    return regulonModules, df
+    return regulon_modules, df
 
 def tfbsdb_enrichment(task):
 
@@ -266,3 +266,47 @@ def __remix(df, frequency_clusters):
         final_clusters.append(keepers)
         final_clusters.sort(key=lambda s: -len(s))
     return final_clusters
+
+
+def get_coexpression_modules(mechanistic_output):
+    coexpression_modules = {}
+    for i in mechanistic_output.keys():
+        genes = list(set(numpy.hstack([mechanistic_output[i][key][1]
+                                       for key in mechanistic_output[i].keys()])))
+        coexpression_modules[i] = genes
+    return coexpression_modules
+
+
+"""
+Postprocessing functions
+"""
+def convert_dictionary(dic, conversion_table):
+    converted = {}
+    for i in dic.keys():
+        genes = dic[i]
+        conv_genes = conversion_table[genes]
+        for j in range(len(conv_genes)):
+            if type(conv_genes[j]) is pandas.core.series.Series:
+                conv_genes[j] = conv_genes[j][0]
+        converted[i] = list(conv_genes)
+    return converted
+
+
+def convert_regulons(df, conversionTable):
+    regIds = []
+    regs = []
+    genes = []
+    for i in range(df.shape[0]):
+        regIds.append(df.iloc[i,0])
+        tmpReg = conversionTable[df.iloc[i,1]]
+        if type(tmpReg) is pandas.core.series.Series:
+            tmpReg = tmpReg[0]
+        regs.append(tmpReg)
+        tmpGene = conversionTable[df.iloc[i, 2]]
+        if type(tmpGene) is pandas.core.series.Series:
+            tmpGene = tmpGene[0]
+        genes.append(tmpGene)
+
+    regulonDfConverted = pandas.DataFrame(numpy.vstack([regIds, regs, genes]).T)
+    regulonDfConverted.columns = ["Regulon_ID","Regulator","Gene"]
+    return regulonDfConverted

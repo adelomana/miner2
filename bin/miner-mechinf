@@ -12,7 +12,6 @@ import matplotlib
 matplotlib.use('Agg')
 import logging
 
-from miner2 import miner
 from miner2 import preprocess
 from miner2 import mechanistic_inference
 
@@ -60,12 +59,6 @@ if __name__ == '__main__':
                                                   subkey=None, min_number_genes=1)
 
     # analyze revised clusters for enrichment in relational database (default: transcription factor binding site database)
-    """
-    mechanistic_output = miner.mechanisticInference(axes, revised_clusters, exp_data,
-                                                    correlationThreshold=args.mincorr,
-                                                    numCores=NUM_CORES,
-                                                    dataFolder=args.datadir)
-    """
     database_path = os.path.join(args.datadir, "tfbsdb_tf_to_genes.pkl")
     mechanistic_output = mechanistic_inference.enrichment(axes, revised_clusters, exp_data,
                                                           correlation_threshold=args.mincorr,
@@ -90,43 +83,46 @@ if __name__ == '__main__':
                                                   freq_threshold=0.333)
 
     # reformat regulon dictionary for consistency with revisedClusters and coexpressionModules
-    regulon_modules, regulon_df = miner.regulonDictionary(regulons)
+    regulon_modules, regulon_df = mechanistic_inference.get_regulon_dictionary(regulons)
 
     # write regulons to json file
-    miner.write_json(regulon_modules, os.path.join(args.outdir, "regulons.json"))
+    with open(os.path.join(args.outdir, "regulons.json"), 'w') as outfile:
+        json.dump(regulon_modules, outfile)
 
     # define coexpression modules as composite of coexpressed regulons
-    coexpression_modules = miner.getCoexpressionModules(mechanistic_output)
+    coexpression_modules = mechanistic_inference.get_coexpression_modules(mechanistic_output)
 
     # write coexpression modules to .json file
-    miner.write_json(coexpression_modules, os.path.join(args.outdir, "coexpressionModules.json"))
+    with open(os.path.join(args.outdir, "coexpressionModules.json"), 'w') as outfile:
+        json.dump(coexpression_modules, outfile)
 
     # reconvert revised clusters to original gene annotations
-    annotated_revised_clusters = miner.convertDictionary(revised_clusters, conv_table)
+    annotated_revised_clusters = mechanistic_inference.convert_dictionary(revised_clusters,
+                                                                          conv_table)
 
     # write annotated coexpression clusters to .json file
-    miner.write_json(revised_clusters,
-                     os.path.join(args.outdir, "coexpressionDictionary_annotated.json"))
+    with open(os.path.join(args.outdir, "coexpressionDictionary_annotated.json"), 'w') as outfile:
+        json.dump(revised_clusters, outfile)
 
     # reconvert results into original annotations
-    regulon_annotated_df = miner.convertRegulons(regulon_df, conv_table)
+    regulon_annotated_df = mechanistic_inference.convert_regulons(regulon_df, conv_table)
 
     # write annotated regulon table to .csv
     regulon_annotated_df.to_csv(os.path.join(args.outdir, "regulons_annotated.csv"))
 
     # reconvert regulons
-    annotated_regulons = miner.convertDictionary(regulon_modules, conv_table)
+    annotated_regulons = mechanistic_inference.convert_dictionary(regulon_modules, conv_table)
 
     # write annotated regulons to .json file
-    miner.write_json(regulons, os.path.join(args.outdir, "regulons_annotated.json"))
+    with open(os.path.join(args.outdir, "regulons_annotated.json"), 'w') as outfile:
+        json.dump(regulons, outfile)
 
     # reconvert coexpression modules
-    annotated_coexpression_modules = miner.convertDictionary(coexpression_modules, conv_table)
+    annotated_coexpression_modules = mechanistic_inference.convert_dictionary(coexpression_modules, conv_table)
 
     # write annotated coexpression modules to .json file
-    miner.write_json(annotated_coexpression_modules,
-                     os.path.join(args.outdir, "coexpressionModules_annotated.json"))
-
+    with open(os.path.join(args.outdir, "coexpressionModules_annotated.json"), 'w') as outfile:
+        json.dump(annotated_coexpression_modules, outfile)
 
     t2 = time.time()
     logging.info("Completed mechanistic inference in {:.2f} minutes".format((t2 - t1) / 60.))
