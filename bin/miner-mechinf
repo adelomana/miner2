@@ -77,7 +77,7 @@ if __name__ == '__main__':
         json.dump(mechanistic_output, outfile)
 
     # order mechanisticOutput as {tf:{coexpressionModule:genes}}
-    coregulation_modules = miner.getCoregulationModules(mechanistic_output)
+    coregulation_modules = mechanistic_inference.get_coregulation_modules(mechanistic_output)
 
     # write coregulation modules to .json file
     with open(os.path.join(args.outdir, "coregulationModules.json"), 'w') as outfile:
@@ -85,8 +85,9 @@ if __name__ == '__main__':
 
     # get final regulons by keeping genes that requently appear coexpressed and associated
     # to a common regulator
-    regulons = miner.getRegulons(coregulation_modules, minNumberGenes=MIN_REGULON_GENES,
-                                 freqThreshold=0.333)
+    regulons = mechanistic_inference.get_regulons(coregulation_modules,
+                                                  min_number_genes=MIN_REGULON_GENES,
+                                                  freq_threshold=0.333)
 
     # reformat regulon dictionary for consistency with revisedClusters and coexpressionModules
     regulon_modules, regulon_df = miner.regulonDictionary(regulons)

@@ -10,6 +10,8 @@ import os
 import matplotlib
 matplotlib.use('Agg')
 from miner2 import miner
+from miner2 import preprocess
+
 
 DESCRIPTION = """miner-bcmembers - MINER compute bicluster membership inference"""
 
@@ -33,7 +35,8 @@ if __name__ == '__main__':
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 
-    exp_data, conv_table = miner.preprocess(args.expfile, args.mapfile)
+    #exp_data, conv_table = miner.preprocess(args.expfile, args.mapfile)
+    exp_data, conv_table = preprocess.main(args.expfile, args.mapfile)
 
     with open(args.regulons) as infile:
         regulon_modules = json.load(infile)

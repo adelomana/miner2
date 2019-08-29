@@ -1,6 +1,6 @@
-import datetime,pandas,numpy,os,pickle,sys
-import sklearn,sklearn.decomposition
-import scipy,scipy.stats
+import datetime, pandas, numpy, os, pickle, sys
+import sklearn, sklearn.decomposition
+import scipy, scipy.stats
 import multiprocessing
 from pkg_resources import Requirement, resource_filename
 import logging
@@ -177,3 +177,92 @@ def tfbsdb_enrichment(task):
                 cluster_tfs[cluster_key][tf] = [p_hyper,overlap_cluster]
 
     return cluster_tfs
+
+
+def get_coregulation_modules(mechanistic_output):
+    coregulation_modules = {}
+    for i in mechanistic_output.keys():
+        for key in mechanistic_output[i].keys():
+            if key not in coregulation_modules.keys():
+                coregulation_modules[key] = {}
+            genes = mechanistic_output[i][key][1]
+            coregulation_modules[key][i] = genes
+    return coregulation_modules
+
+
+def get_regulons(coregulation_modules, min_number_genes=5, freq_threshold=0.333):
+    regulons = {}
+    keys = coregulation_modules.keys()
+    for i in range(len(keys)):
+        tf = keys[i]
+        norm_df = __coincidence_matrix(coregulation_modules, key=i, freq_threshold=freq_threshold)
+        unmixed = __unmix(norm_df)
+        remixed = __remix(norm_df, unmixed)
+
+        if len(remixed) > 0:
+            for cluster in remixed:
+                if len(cluster) > min_number_genes:
+                    if tf not in regulons.keys():
+                        regulons[tf] = {}
+                    regulons[tf][len(regulons[tf])] = cluster
+    return regulons
+
+
+def __coincidence_matrix(coregulation_modules, key, freq_threshold):
+    tf = coregulation_modules.keys()[key]
+    sub_regulons = coregulation_modules[tf]
+    sr_genes = list(set(numpy.hstack([sub_regulons[i] for i in sub_regulons.keys()])))
+
+    template = pandas.DataFrame(numpy.zeros((len(sr_genes), len(sr_genes))))
+    template.index = sr_genes
+    template.columns = sr_genes
+
+    for key in sub_regulons.keys():
+        genes = sub_regulons[key]
+        template.loc[genes, genes] += 1
+
+    trace = numpy.array([template.iloc[i, i] for i in range(template.shape[0])]).astype(float)
+    norm_df = ((template.T) / trace).T
+    norm_df[norm_df < freq_threshold] = 0
+    norm_df[norm_df > 0] = 1
+
+    return norm_df
+
+
+def __unmix(df, iterations=25, return_all=False):
+    frequency_clusters = []
+
+    for iteration in range(iterations):
+        sum_df1 = df.sum(axis=1)
+        max_sum = numpy.argmax(sum_df1)
+        hits = numpy.where(df.loc[max_sum] > 0)[0]
+        hit_index = list(df.index[hits])
+        block = df.loc[hit_index, hit_index]
+        block_sum = block.sum(axis=1)
+        core_block = list(block_sum.index[numpy.where(block_sum >= numpy.median(block_sum))[0]])
+        remainder = list(set(df.index) - set(core_block))
+
+        frequency_clusters.append(core_block)
+        if len(remainder) == 0:
+            return frequency_clusters
+        if len(core_block) == 1:
+            return frequency_clusters
+        df = df.loc[remainder, remainder]
+
+    if return_all:
+        frequency_clusters.append(remainder)
+    return frequency_clusters
+
+
+def __remix(df, frequency_clusters):
+    final_clusters = []
+    for cluster in frequency_clusters:
+        slice_df = df.loc[cluster,:]
+        sum_slice = slice_df.sum(axis=0)
+        cut = min(0.8, numpy.percentile(sum_slice.loc[cluster] / float(len(cluster)), 90))
+        min_genes = max(4, cut * len(cluster))
+        keepers = list(slice_df.columns[numpy.where(sum_slice >= min_genes)[0]])
+        keepers = list(set(keepers) | set(cluster))
+        final_clusters.append(keepers)
+        final_clusters.sort(key=lambda s: -len(s))
+    return final_clusters
