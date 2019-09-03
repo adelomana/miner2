@@ -767,7 +767,7 @@ def assignMembership(geneset,background,p=0.05):
     class0 = len(geneset)-np.count_nonzero(cluster,axis=0)
     class1 = len(geneset)-np.count_nonzero(cluster-1,axis=0)
     observations = zip(classNeg1,class0,class1)
-    
+
     highpass = stats.binom.ppf(1-p/3,len(geneset),1./3)
     classes = []
     for i in range(len(observations)):
@@ -775,7 +775,7 @@ def assignMembership(geneset,background,p=0.05):
         if len(check)>1:
             check = np.array([np.argmax(np.array(observations[i]))])
         classes.append(check)
-    
+
     return classes
 
 def clusterScore(membership,pMembership=0.05):

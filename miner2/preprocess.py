@@ -395,3 +395,20 @@ def zscore(expressionData):
         passIndex = numpy.where(stds>0)[0]
         transform = ((expressionData.iloc[passIndex,:].T - means[passIndex])/stds[passIndex]).T
     return transform
+
+
+def background_df(expression_data):
+
+    low = numpy.percentile(expression_data, 100. / 3, axis=0)
+    high = numpy.percentile(expression_data, 200. / 3, axis=0)
+    even_cuts = zip(low, high)
+
+    bkgd = expression_data.copy()
+    for i in range(bkgd.shape[1]):
+        low_cut = even_cuts[i][0]
+        high_cut = even_cuts[i][1]
+        bkgd.iloc[:, i][bkgd.iloc[:, i] >= high_cut] = 1
+        bkgd.iloc[:, i][bkgd.iloc[:, i] <= low_cut] = -1
+        bkgd.iloc[:, i][numpy.abs(bkgd.iloc[:, i]) != 1] = 0
+
+    return bkgd

@@ -9,8 +9,8 @@ import os
 
 import matplotlib
 matplotlib.use('Agg')
-from miner2 import miner
 from miner2 import preprocess
+from miner2 import biclusters
 
 
 DESCRIPTION = """miner-bcmembers - MINER compute bicluster membership inference"""
@@ -41,15 +41,15 @@ if __name__ == '__main__':
     with open(args.regulons) as infile:
         regulon_modules = json.load(infile)
 
-    bkgd = miner.backgroundDf(exp_data)
-    overexpressed_members = miner.biclusterMembershipDictionary(regulon_modules,
-                                                                bkgd, label=2, p=0.05)
-    underexpressed_members = miner.biclusterMembershipDictionary(regulon_modules,
-                                                                 bkgd, label=0, p=0.05)
-    dysregulated_members = miner.biclusterMembershipDictionary(regulon_modules,
-                                                               bkgd, label="excluded")
-    coherent_members = miner.biclusterMembershipDictionary(regulon_modules,
-                                                           bkgd, label="included")
+    bkgd = preprocess.background_df(exp_data)
+    overexpressed_members = biclusters.make_membership_dictionary(regulon_modules,
+                                                                  bkgd, label=2, p=0.05)
+    underexpressed_members = biclusters.make_membership_dictionary(regulon_modules,
+                                                                   bkgd, label=0, p=0.05)
+    dysregulated_members = biclusters.make_membership_dictionary(regulon_modules,
+                                                                 bkgd, label="excluded")
+    coherent_members = biclusters.make_membership_dictionary(regulon_modules,
+                                                             bkgd, label="included")
 
     # write the overexpressed/underexpressed members as JSON, tools later in the pipeline can
     # easier access them
@@ -58,21 +58,21 @@ if __name__ == '__main__':
     with open(os.path.join(args.outdir, 'underExpressedMembers.json'), 'w') as out:
         json.dump(underexpressed_members, out)
 
-    overexpressed_members_matrix = miner.membershipToIncidence(overexpressed_members,
-                                                               exp_data)
+    overexpressed_members_matrix = biclusters.membership_to_incidence(overexpressed_members,
+                                                                      exp_data)
     overexpressed_members_matrix.to_csv(os.path.join(args.outdir,
                                                      "overExpressedMembers.csv"))
 
-    underexpressed_members_matrix = miner.membershipToIncidence(underexpressed_members,
-                                                                exp_data)
+    underexpressed_members_matrix = biclusters.membership_to_incidence(underexpressed_members,
+                                                                       exp_data)
     underexpressed_members_matrix.to_csv(os.path.join(args.outdir,
                                                       "underExpressedMembers.csv"))
 
-    dysregulated_members_matrix = miner.membershipToIncidence(dysregulated_members,
-                                                              exp_data)
+    dysregulated_members_matrix = biclusters.membership_to_incidence(dysregulated_members,
+                                                                     exp_data)
     dysregulated_members_matrix.to_csv(os.path.join(args.outdir, "dysregulatedMembers.csv"))
 
-    coherent_members_matrix = miner.membershipToIncidence(coherent_members,
-                                                          exp_data)
+    coherent_members_matrix = biclusters.membership_to_incidence(coherent_members,
+                                                                 exp_data)
     coherent_members_matrix.to_csv(os.path.join(args.outdir,
                                                 "coherentMembers.csv"))
