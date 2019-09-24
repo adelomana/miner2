@@ -9,7 +9,9 @@ import os
 
 import matplotlib
 matplotlib.use('Agg')
-from miner2 import miner
+from miner2 import preprocess
+from miner2 import mechanistic_inference
+from miner2 import causal_inference
 
 DESCRIPTION = """miner-causalinf-pre - MINER pre-compute causal inference"""
 MIN_REGULON_GENES = 5
@@ -41,7 +43,7 @@ if __name__ == '__main__':
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 
-    exp_data, conv_table = miner.preprocess(args.expfile, args.mapfile)
+    exp_data, conv_table = preprocess.main(args.expfile, args.mapfile)
 
     with open(args.mechout) as infile:
         mechanistic_output= json.load(infile)
@@ -49,8 +51,9 @@ if __name__ == '__main__':
         coexpression_modules = json.load(infile)
     with open(args.coreg) as infile:
         coregulation_modules = json.load(infile)
-        regulons = miner.getRegulons(coregulation_modules, minNumberGenes=MIN_REGULON_GENES,
-                                     freqThreshold=0.333)
+        regulons = mechanistic_inference.get_regulons(coregulation_modules,
+                                                      min_number_genes=MIN_REGULON_GENES,
+                                                      freq_threshold=0.333)
 
     # NOTE when copying Matt's file that it has some hardcoded paths, that I
     # had to eliminate for using it. Mostly the data folder, which I replaced
@@ -60,12 +63,12 @@ if __name__ == '__main__':
     #
     # when using Matt's file we also need to make sure all the path construction
     # is replaced
-    miner.generateCausalInputs(exp_data, mechanistic_output,
-                               coexpression_modules,
-                               saveFolder=args.outdir,
-                               dataFolder=args.datadir,
-                               mutationFile=args.mutation,
-                               regulon_dict=regulons)
+    causal_inference.generate_inputs(exp_data, mechanistic_output,
+                                     coexpression_modules,
+                                     saveFolder=args.outdir,
+                                     dataFolder=args.datadir,
+                                     mutationFile=args.mutation,
+                                     regulon_dict=regulons)
 
     # here comes the R step. This can a few hours
     # note that neoSourceCode.R actually wants

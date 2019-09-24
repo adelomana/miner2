@@ -451,8 +451,8 @@ def transcriptional_programs(programs, reference_dictionary):
 # =============================================================================
 
 def get_eigengenes(coexpressionModules, expressionData, regulon_dict=None, saveFolder=None):
-    eigengenes = __principal_df(coexpressionModules, expressionData, subkey=None,
-                                regulons=regulon_dict, minNumberGenes=1)
+    eigengenes = principal_df(coexpressionModules, expressionData, subkey=None,
+                              regulons=regulon_dict, minNumberGenes=1)
     eigengenes = eigengenes.T
     index = numpy.sort(numpy.array(eigengenes.index).astype(int))
     eigengenes = eigengenes.loc[index.astype(str),:]
@@ -461,14 +461,34 @@ def get_eigengenes(coexpressionModules, expressionData, regulon_dict=None, saveF
     return eigengenes
 
 
-def __principal_df(dict_, expressionData, regulons=None, subkey='genes',
+def __regulon_dictionary(regulons):
+    regulonModules = {}
+    #str(i):[regulons[key][j]]}
+    df_list = []
+
+    for tf in regulons.keys():
+        for key in regulons[tf].keys():
+            genes = regulons[tf][key]
+            id_ = str(len(regulonModules))
+            regulonModules[id_] = regulons[tf][key]
+            for gene in genes:
+                df_list.append([id_,tf,gene])
+
+    array = numpy.vstack(df_list)
+    df = pandas.DataFrame(array)
+    df.columns = ["Regulon_ID","Regulator","Gene"]
+
+    return regulonModules, df
+
+
+def principal_df(dict_, expressionData, regulons=None, subkey='genes',
                    minNumberGenes=8, random_state=12):
 
     pcDfs = []
     setIndex = set(expressionData.index)
 
     if regulons is not None:
-        dict_, df = regulonDictionary(regulons)
+        dict_, df = __regulon_dictionary(regulons)
     for i in dict_.keys():
         if subkey is not None:
             genes = list(set(dict_[i][subkey])&setIndex)
