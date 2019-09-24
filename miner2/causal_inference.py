@@ -5,6 +5,7 @@ import os
 from scipy import stats
 
 from miner2 import subtypes
+from miner2 import util
 
 
 def _bicluster_tf_incidence(mechanisticOutput, regulons=None):
@@ -68,7 +69,7 @@ def __read_pkl(input_file):
         return pickle.load(f)
 
 
-def __tf_expression(expressionData,motifPath=os.path.join("..","data","all_tfs_to_motifs.pkl")):
+def tf_expression(expressionData,motifPath=os.path.join("..","data","all_tfs_to_motifs.pkl")):
     allTfsToMotifs = __read_pkl(motifPath)
     tfs = list(set(allTfsToMotifs.keys())&set(expressionData.index))
     tfExp = expressionData.loc[tfs,:]
@@ -136,7 +137,7 @@ def generate_inputs(expressionData,
     eigengenes.to_csv(os.path.join(saveFolder,"eigengenes.csv"))
 
     #tfExpression
-    tfExp = __tf_expression(expressionData,
+    tfExp = tf_expression(expressionData,
                             motifPath=os.path.join(dataFolder, "all_tfs_to_motifs.pkl"))
     tfExp.to_csv(os.path.join(saveFolder,"tfExpression.csv"))
 
@@ -151,3 +152,194 @@ def generate_inputs(expressionData,
                    set(numpy.where(numpy.sum(tfStratMutations, axis=0) == 0)[0]))
     tfStratMutations = tfStratMutations.iloc[:,keepers]
     tfStratMutations.to_csv(os.path.join(saveFolder,"regStratAll.csv"))
+
+
+def process_causal_results(causalPath=os.path.join("..","results","causal"), causalDictionary=False):
+    causalFiles = []
+    for root, dirs, files in os.walk(causalPath, topdown=True):
+       for name in files:
+          if name.split(".")[-1] == 'DS_Store':
+              continue
+          causalFiles.append(os.path.join(root, name))
+
+    if causalDictionary is False:
+        causalDictionary = {}
+    for csv in causalFiles:
+        tmpcsv = pandas.read_csv(csv,index_col=False,header=None)
+        for i in range(1,tmpcsv.shape[0]):
+            score = float(tmpcsv.iloc[i,-2])
+            if score <1:
+                break
+            bicluster = int(tmpcsv.iloc[i,-3].split(":")[-1].split("_")[-1])
+            if bicluster not in causalDictionary.keys():
+                causalDictionary[bicluster] = {}
+            regulator = tmpcsv.iloc[i,-5].split(":")[-1]
+            if regulator not in causalDictionary[bicluster].keys():
+                causalDictionary[bicluster][regulator] = []
+            mutation = tmpcsv.iloc[i,1].split(":")[-1]
+            if mutation not in causalDictionary[bicluster][regulator]:
+                causalDictionary[bicluster][regulator].append(mutation)
+
+    return causalDictionary
+
+def mutation_matrix(mutation_files, minNumMutations=None):
+    matrices = []
+    for f in mutation_files:
+        matrix = __filter_mutations(mutationFile=f, minNumMutations=minNumMutations)
+        matrices.append(matrix)
+    return pandas.concat(matrices,axis=0)
+
+
+def analyze_causal_results(task):
+    start, stop = task[0]
+    preProcessedCausalResults,mechanisticOutput,filteredMutations,tfExp,eigengenes = task[1]
+    postProcessed = {}
+    if mechanisticOutput is not None:
+        mechOutKeyType = type(mechanisticOutput.keys()[0])
+    allPatients = set(filteredMutations.columns)
+    keys = preProcessedCausalResults.keys()[start:stop]
+    ct=-1
+    for bc in keys:
+        ct+=1
+        if ct%10 == 0:
+            print(ct)
+        postProcessed[bc] = {}
+        for tf in preProcessedCausalResults[bc].keys():
+            for mutation in preProcessedCausalResults[bc][tf]:
+                mut = __get_mutations(mutation,filteredMutations)
+                wt = list(allPatients - set(mut))
+                mutTfs = tfExp.loc[tf,mut][tfExp.loc[tf,mut]>-4.01]
+                if len(mutTfs) <=1:
+                    mutRegT = 0
+                    mutRegP = 1
+                elif len(mutTfs) >1:
+                    wtTfs = tfExp.loc[tf,wt][tfExp.loc[tf,wt]>-4.01]
+                    mutRegT, mutRegP = stats.ttest_ind(list(mutTfs),list(wtTfs),equal_var=False)
+                mutBc = eigengenes.loc[bc,mut][eigengenes.loc[bc,mut]>-4.01]
+                if len(mutBc) <=1:
+                    mutBcT = 0
+                    mutBcP = 1
+                    mutCorrR = 0
+                    mutCorrP = 1
+                elif len(mutBc) >1:
+                    wtBc = eigengenes.loc[bc,wt][eigengenes.loc[bc,wt]>-4.01]
+                    mutBcT, mutBcP = stats.ttest_ind(list(mutBc),list(wtBc),equal_var=False)
+                    if len(mutTfs) <=2:
+                        mutCorrR = 0
+                        mutCorrP = 1
+                    elif len(mutTfs) >2:
+                        nonzeroPatients = list(set(numpy.array(mut)[tfExp.loc[tf,mut]>-4.01]) &
+                                               set(numpy.array(mut)[eigengenes.loc[bc,mut]>-4.01]))
+                        mutCorrR, mutCorrP = stats.pearsonr(list(tfExp.loc[tf,nonzeroPatients]),list(eigengenes.loc[bc,nonzeroPatients]))
+                signMutTf = 1
+                if mutRegT < 0:
+                    signMutTf = -1
+                elif mutRegT == 0:
+                    signMutTf = 0
+                signTfBc = 1
+                if mutCorrR < 0:
+                    signTfBc = -1
+                elif mutCorrR == 0:
+                    signTfBc = 0
+                if mechanisticOutput is not None:
+                    if mechOutKeyType is int:
+                        phyper = mechanisticOutput[bc][tf][0]
+                    elif mechOutKeyType is not int:
+                        phyper = mechanisticOutput[str(bc)][tf][0]
+                elif mechanisticOutput is None:
+                    phyper = 1e-10
+                pMutRegBc = 10**-((-numpy.log10(mutRegP) - numpy.log10(mutBcP) -
+                                   numpy.log10(mutCorrP) - numpy.log10(phyper))/4.)
+
+                pWeightedTfBc = 10**-((-numpy.log10(mutCorrP) - numpy.log10(phyper))/2.)
+                mutFrequency = len(mut) / float(filteredMutations.shape[1])
+                postProcessed[bc][tf] = {}
+                postProcessed[bc][tf]["regBcWeightedPValue"] = pWeightedTfBc
+                postProcessed[bc][tf]["edgeRegBc"] = signTfBc
+                postProcessed[bc][tf]["regBcHyperPValue"] = phyper
+                if "mutations" not in postProcessed[bc][tf].keys():
+                    postProcessed[bc][tf]["mutations"] = {}
+                postProcessed[bc][tf]["mutations"][mutation] = {}
+                postProcessed[bc][tf]["mutations"][mutation]["mutationFrequency"] = mutFrequency
+                postProcessed[bc][tf]["mutations"][mutation]["mutRegBcWeightedPValue"] = pMutRegBc
+                postProcessed[bc][tf]["mutations"][mutation]["edgeMutReg"] = signMutTf
+                postProcessed[bc][tf]["mutations"][mutation]["mutRegPValue"] = mutRegP
+                postProcessed[bc][tf]["mutations"][mutation]["mutBcPValue"] = mutBcP
+                postProcessed[bc][tf]["mutations"][mutation]["regBcCorrPValue"] = mutCorrP
+                postProcessed[bc][tf]["mutations"][mutation]["regBcCorrR"] = mutCorrR
+    return postProcessed
+
+
+
+def post_process_causal_results(preProcessedCausalResults, filteredMutations, tfExp,
+                                eigengenes, mechanisticOutput=None, numCores=5):
+    taskSplit = util.split_for_multiprocessing(preProcessedCausalResults.keys(),numCores)
+    taskData = (preProcessedCausalResults, mechanisticOutput, filteredMutations, tfExp, eigengenes)
+    tasks = [[taskSplit[i],taskData] for i in range(len(taskSplit))]
+    Output = util.multiprocess(analyze_causal_results, tasks)
+    return util.condense_output(Output)
+
+
+def causal_mechanistic_network_dictionary(postProcessedCausalAnalysis,
+                                          biclusterRegulatorPvalue=0.05,
+                                          regulatorMutationPvalue=0.05,
+                                          mutationFrequency=0.025,
+                                          requireCausal=False):
+    tabulatedResults = []
+    ct=-1
+
+    for key in postProcessedCausalAnalysis.keys():
+        ct+=1
+        if ct%10==0:
+            print(ct)
+        lines = []
+        regs = postProcessedCausalAnalysis[key].keys()
+        for reg in regs:
+            bcid = key
+            regid = reg
+            bcRegEdgeType = int(postProcessedCausalAnalysis[key][reg]['edgeRegBc'])
+            bcRegEdgePValue = postProcessedCausalAnalysis[key][reg]['regBcWeightedPValue']
+            bcTargetEnrichmentPValue = postProcessedCausalAnalysis[key][reg]['regBcHyperPValue']
+            if bcRegEdgePValue <= biclusterRegulatorPvalue:
+                if len(postProcessedCausalAnalysis[key][reg]['mutations'])>0:
+                    for mut in postProcessedCausalAnalysis[key][reg]['mutations'].keys():
+                        mutFrequency = postProcessedCausalAnalysis[key][reg]['mutations'][mut]['mutationFrequency']
+                        mutRegPValue = postProcessedCausalAnalysis[key][reg]['mutations'][mut]['mutRegPValue']
+                        if mutFrequency >= mutationFrequency:
+                            if mutRegPValue <= regulatorMutationPvalue:
+                                mutid = mut
+                                mutRegEdgeType = int(postProcessedCausalAnalysis[key][reg]['mutations'][mut]['edgeMutReg'])
+                            elif mutRegPValue > regulatorMutationPvalue:
+                                mutid = numpy.nan #"NA"
+                                mutRegEdgeType = numpy.nan #"NA"
+                                mutRegPValue = numpy.nan #"NA"
+                                mutFrequency = numpy.nan #"NA"
+                        elif mutFrequency < mutationFrequency:
+                            mutid = numpy.nan #"NA"
+                            mutRegEdgeType = numpy.nan #"NA"
+                            mutRegPValue = numpy.nan #"NA"
+                            mutFrequency = numpy.nan #"NA"
+                elif len(postProcessedCausalAnalysis[key][reg]['mutations'])==0:
+                    mutid = numpy.nan #"NA"
+                    mutRegEdgeType = numpy.nan #"NA"
+                    mutRegPValue = numpy.nan #"NA"
+                    mutFrequency = numpy.nan #"NA"
+            elif bcRegEdgePValue > biclusterRegulatorPvalue:
+                continue
+            line = [bcid,regid,bcRegEdgeType,bcRegEdgePValue,bcTargetEnrichmentPValue,mutid,mutRegEdgeType,mutRegPValue,mutFrequency]
+            lines.append(line)
+        if len(lines) == 0:
+            continue
+        stack = numpy.vstack(lines)
+        df = pandas.DataFrame(stack)
+        df.columns = ["Cluster","Regulator","RegulatorToClusterEdge","RegulatorToClusterPValue","RegulatorBindingSiteEnrichment","Mutation","MutationToRegulatorEdge","MutationToRegulatorPValue","FrequencyOfMutation"]
+        tabulatedResults.append(df)
+
+    resultsDf = pandas.concat(tabulatedResults,axis=0)
+    resultsDf = resultsDf[resultsDf["RegulatorToClusterEdge"]!='0']
+    resultsDf.index = numpy.arange(resultsDf.shape[0])
+
+    if requireCausal is True:
+        resultsDf = resultsDf[resultsDf["Mutation"]!="nan"]
+
+    return resultsDf

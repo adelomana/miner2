@@ -2,9 +2,9 @@ from lifelines import KaplanMeierFitter
 from scipy import stats
 import numpy
 import pandas
-import multiprocessing, multiprocessing.pool
 from lifelines import CoxPHFitter
 import matplotlib.pyplot as plt
+from miner2 import util
 
 
 # =============================================================================
@@ -98,39 +98,6 @@ def guan_rank(kmSurvival, saveFile=None):
     return survivalData
 
 
-def _split_for_multiprocessing(vector, cores):
-    partition = int(len(vector) / cores)
-    remainder = len(vector) - cores * partition
-    starts = numpy.arange(0, len(vector) ,partition)[0:cores]
-
-    for i in range(remainder):
-        starts[cores - remainder + i] = starts[cores - remainder + i] + i
-
-    stops = starts + partition
-    for i in range(remainder):
-        stops[cores - remainder + i] = stops[cores - remainder + i] + 1
-
-    return zip(starts, stops)
-
-
-def _multiprocess(function, tasks):
-    hydra = multiprocessing.pool.Pool(len(tasks))
-    output = hydra.map(function, tasks)
-    hydra.close()
-    hydra.join()
-    return output
-
-
-def _condense_output(output):
-    results = {}
-    for i in range(len(output)):
-        resultsDict = output[i]
-        keys = resultsDict.keys()
-        for j in range(len(resultsDict)):
-            key = keys[j]
-            results[key] = resultsDict[key]
-    return results
-
 
 def survival_membership_analysis(task):
 
@@ -174,11 +141,11 @@ def parallel_member_survival_analysis(membershipDf, numCores=5, survivalPath=Non
     if survivalData is None:
         survivalData = pandas.read_csv(survivalPath,index_col=0,header=0)
 
-    taskSplit = _split_for_multiprocessing(membershipDf.index, numCores)
+    taskSplit = util.split_for_multiprocessing(membershipDf.index, numCores)
     taskData = (membershipDf, survivalData)
     tasks = [[taskSplit[i],taskData] for i in range(len(taskSplit))]
-    coxOutput = _multiprocess(survival_membership_analysis, tasks)
-    return _condense_output(coxOutput)
+    coxOutput = util.multiprocess(survival_membership_analysis, tasks)
+    return util.condense_output(coxOutput)
 
 
 def combined_states(groups, ranked_groups, survivalDf, minSamples=4, maxStates=7):
