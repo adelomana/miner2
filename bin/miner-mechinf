@@ -88,6 +88,7 @@ if __name__ == '__main__':
     # write regulons to json file
     with open(os.path.join(args.outdir, "regulons.json"), 'w') as outfile:
         json.dump(regulon_modules, outfile)
+    regulon_df.to_csv(os.path.join(args.outdir, "regulonDf.csv"))
 
     # define coexpression modules as composite of coexpressed regulons
     coexpression_modules = mechanistic_inference.get_coexpression_modules(mechanistic_output)
