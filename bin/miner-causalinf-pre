@@ -9,9 +9,9 @@ import os
 
 import matplotlib
 matplotlib.use('Agg')
-from miner2 import preprocess
-from miner2 import mechanistic_inference
-from miner2 import causal_inference
+from miner2 import preprocess, mechanistic_inference, causal_inference, util
+from miner2 import GIT_SHA, __version__ as pkg_version
+
 
 DESCRIPTION = """miner-causalinf-pre - MINER pre-compute causal inference"""
 MIN_REGULON_GENES = 5
@@ -42,6 +42,9 @@ if __name__ == '__main__':
 
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
+
+    with open(os.path.join(args.outdir, 'run_info.txt'), 'w') as outfile:
+        util.write_dependency_infos(outfile)
 
     exp_data, conv_table = preprocess.main(args.expfile, args.mapfile)
 

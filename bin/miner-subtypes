@@ -10,11 +10,12 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from miner2 import preprocess
-from miner2 import biclusters
-from miner2 import subtypes
+from miner2 import preprocess, biclusters, subtypes, util
+from miner2 import GIT_SHA, __version__ as pkg_version
 
-DESCRIPTION = """miner-subtypes - MINER compute sample subtypes"""
+DESCRIPTION = """miner-subtypes - MINER compute sample subtypes
+MINER Version %s (Git SHA %s)""" % (pkg_version, GIT_SHA.replace('$Id: ', '').replace(' $', ''))
+
 MIN_CORRELATION = 0.2
 
 if __name__ == '__main__':
@@ -31,6 +32,10 @@ if __name__ == '__main__':
 
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
+
+    with open(os.path.join(args.outdir, 'run_info.txt'), 'w') as outfile:
+        util.write_dependency_infos(outfile)
+
     exp_data, conv_table = preprocess.main(args.expfile, args.mapfile)
     bkgd = preprocess.background_df(exp_data)
 

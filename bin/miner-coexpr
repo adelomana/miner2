@@ -14,8 +14,13 @@ import logging
 
 from miner2 import coexpression
 from miner2 import preprocess
+from miner2 import GIT_SHA
+from miner2 import __version__ as MINER_VERSION
+from miner2 import util
 
-DESCRIPTION = """miner-coexpr - MINER cluster expression data."""
+DESCRIPTION = """miner-coexpr - MINER cluster expression data.
+MINER Version %s (Git SHA %s)""" % (str(MINER_VERSION).replace('miner2 ', ''),
+                                    GIT_SHA.replace('$Id: ', '').replace(' $', ''))
 
 if __name__ == '__main__':
     LOG_FORMAT = '%(asctime)s %(message)s'
@@ -45,6 +50,9 @@ if __name__ == '__main__':
 
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
+
+    with open(os.path.join(args.outdir, 'run_info.txt'), 'w') as outfile:
+        util.write_dependency_infos(outfile)
 
     exp_data, conv_table = preprocess.main(args.expfile, args.mapfile)
     t1 = time.time()

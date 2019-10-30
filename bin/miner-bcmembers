@@ -9,11 +9,12 @@ import os
 
 import matplotlib
 matplotlib.use('Agg')
-from miner2 import preprocess
-from miner2 import biclusters
+from miner2 import preprocess, util, biclusters
+from miner2 import GIT_SHA, __version__ as pkg_version
 
 
-DESCRIPTION = """miner-bcmembers - MINER compute bicluster membership inference"""
+DESCRIPTION = """miner-bcmembers - MINER compute bicluster membership inference.
+MINER Version %s (Git SHA %s)""" % (pkg_version, GIT_SHA.replace('$Id: ', '').replace(' $', ''))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -35,7 +36,9 @@ if __name__ == '__main__':
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 
-    #exp_data, conv_table = miner.preprocess(args.expfile, args.mapfile)
+    with open(os.path.join(args.outdir, 'run_info.txt'), 'w') as outfile:
+        util.write_dependency_infos(outfile)
+
     exp_data, conv_table = preprocess.main(args.expfile, args.mapfile)
 
     with open(args.regulons) as infile:

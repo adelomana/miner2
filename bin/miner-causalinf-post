@@ -9,10 +9,13 @@ import os
 
 import matplotlib
 matplotlib.use('Agg')
-from miner2 import preprocess
-from miner2 import causal_inference
+from miner2 import preprocess, causal_inference, util
+from miner2 import GIT_SHA, __version__ as pkg_version
 
-DESCRIPTION = """miner-causalinf-post - MINER post-compute causal inference"""
+
+DESCRIPTION = """miner-causalinf-post - MINER post-compute causal inference
+MINER Version %s (Git SHA %s)""" % (pkg_version, GIT_SHA.replace('$Id: ', '').replace(' $', ''))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -43,6 +46,9 @@ if __name__ == '__main__':
 
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
+
+    with open(os.path.join(args.outdir, 'run_info.txt'), 'w') as outfile:
+        util.write_dependency_infos(outfile)
 
     exp_data, conv_table = preprocess.main(args.expfile, args.mapfile)
 
