@@ -73,8 +73,6 @@ def risk_stratification(lbls, mtrx, guan_srv, survival_tag, classifier,
                         high_risk_cutoffs=None, plot_any=True):
     warnings.filterwarnings("ignore")
 
-    print("GUAN_SRV")
-    print(guan_srv)
     guan_srv = guan_srv.loc[list(set(guan_srv.index)&set(mtrx.columns)),:]
     if plot_any is True:
         f, (ax1, ax2) = plt.subplots(1, 2, sharey=False)
@@ -90,12 +88,6 @@ def risk_stratification(lbls, mtrx, guan_srv, survival_tag, classifier,
     srv = guan_srv.iloc[:,0:2]
     srv_observed = guan_srv[guan_srv.iloc[:,1]==1]
     srv_unobserved = guan_srv[guan_srv.iloc[:,1]==0]
-
-    """
-    print('riskStratification.srv_observed')
-    print(srv_observed)
-    print('riskStratification.srv_unobserved')
-    print(srv_unobserved)"""
 
     if high_risk_cutoffs is None:
         high_risk_cutoffs = np.percentile(list(srv_observed.iloc[:,0]),[10,15,20,25,30])
@@ -257,6 +249,10 @@ def generate_predictor(membership_datasets, survival_datasets, dataset_labels,
                        output_directory=None, best_state=None, test_only=True,
                        separate_results=True, metric='roc_auc', class1_proportion=0.20,
                        test_proportion=0.35,colsample_bytree=1,subsample=1):
+    """
+    Computes a classifier object from the specified input data sets.
+    The result is either an xgboost.XGBClassifier or a sklearn.tree.DecisionTreeClassifier
+    """
     if method == 'xgboost':
         # prevents kernel from dying when running XGBClassifier
         os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
