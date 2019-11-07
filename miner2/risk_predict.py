@@ -7,8 +7,9 @@ import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 import matplotlib.pyplot as plt
+import json
 
-from miner2 import survival
+from miner2 import survival, preprocess, biclusters, miner
 
 
 def generate_prediction_matrix(srv, mtrx, high_risk_cutoff=0.2):
@@ -506,3 +507,65 @@ def generate_predictor(membership_datasets, survival_datasets, dataset_labels,
         return clf, class0, class1, mean_aucs, mean_hrs, pct_labeled, precision_matrix, recall_matrix
 
     return clf, class0, class1, mean_aucs, mean_hrs, pct_labeled, precision_matrix, recall_matrix
+
+
+def load_test_set(exp_path, reference_modules, conv_table_path):
+    exp_data = pd.read_csv(exp_path, index_col=0,header=0)
+    # WHY ???? does preprocess.identifier_conversion not work ? TODO
+    exp_data, _ = miner.identifierConversion(exp_data, conv_table_path)
+    exp_data = preprocess.zscore(exp_data)
+    bkgd = preprocess.background_df(exp_data)
+
+    overexp_members = biclusters.make_membership_dictionary(reference_modules, bkgd, label=2, p=0.1)
+    overexp_members_matrix = biclusters.membership_to_incidence(overexp_members, exp_data)
+
+    underexp_members = biclusters.make_membership_dictionary(reference_modules, bkgd, label=0, p=0.1)
+    underexp_members_matrix = biclusters.membership_to_incidence(underexp_members, exp_data)
+    return overexp_members_matrix, underexp_members_matrix
+
+
+def get_survival_subset(surv_df, label):
+    sub_surv = surv_df[surv_df.index==label]
+    sub_surv.index = sub_surv.iloc[:,0]
+    sub_surv_df = sub_surv.loc[:,["D_PFS","D_PFS_FLAG"]]
+    sub_surv_df.columns = ["duration","observed"]
+
+    km_df = survival.km_analysis(survivalDf=sub_surv_df,
+                                 durationCol="duration", statusCol="observed")
+    return survival.guan_rank(kmSurvival=km_df)
+
+
+def read_datasets(input_spec):
+    """
+    Reads a datasets dictionary from the specified input specification
+    """
+    with open(input_spec['regulons']) as infile:
+        regulon_modules = json.load(infile)
+
+    prim_survival = pd.read_csv(input_spec['primary_survival'], index_col=0, header=0)
+    prim_survival_df = prim_survival.iloc[:,0:2]
+    prim_survival_df.columns = ["duration", "observed"]
+
+    test_survival = pd.read_csv(input_spec['test_survival'], index_col=0,header=0)
+
+    datasets = []
+    for dataset in input_spec['datasets']:
+        omm, umm = load_test_set(dataset['exp'], regulon_modules, dataset['idmap'])
+        dataset_obj = {
+            'omm': omm,
+            'umm': umm,
+            'label': dataset['label'],
+            'primary': dataset['primary'],
+            'dfr': (omm - umm)
+        }
+        if dataset['primary']:
+            dataset_obj['km'] = survival.km_analysis(survivalDf=prim_survival_df,
+                                                     durationCol="duration", statusCol="observed")
+            dataset_obj['gs'] = survival.guan_rank(kmSurvival=dataset_obj['km'])
+        else:
+            print('subset of global survival')
+            dataset_obj['gs'] = get_survival_subset(test_survival, dataset['survival_subset'])
+
+        datasets.append(dataset_obj)
+    return datasets
+

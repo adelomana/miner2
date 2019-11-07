@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+import os
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import pickle
+
+from miner2 import risk_predict, survival, util
+from miner2 import GIT_SHA, __version__ as pkg_version
+
+DESCRIPTION = """miner-riskclassifier - MINER compute risk classifier.
+MINER Version %s (Git SHA %s)""" % (pkg_version, GIT_SHA.replace('$Id: ', '').replace(' $', ''))
+
+
+
+def cross_dataset_prediction(membership_datasets, survival_datasets, dataset_labels,
+                             outdir):
+    classifier, class0, class1, mean_aucs, mean_hrs, pct_labeled, precision_matrix, recall_matrix = risk_predict.generate_predictor(membership_datasets, survival_datasets, dataset_labels, iterations=30, method='decisionTree', output_directory=outdir, metric='hazard_ratio',separate_results=True,class1_proportion=0.30,test_proportion=0.30,best_state=11,test_only=True)
+
+
+    recall = recall_matrix[2]
+    precision = precision_matrix[2]
+    plt.step(recall, precision, alpha=0.8,where='post')
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.ylim([0.0, 1.05])
+    plt.xlim([0.0, 1.0])
+    plt.savefig(os.path.join(outdir, 'precision_recall.pdf'))
+
+    return classifier
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     description=DESCRIPTION)
+    parser.add_argument('input', help="input specification file")
+    parser.add_argument('outdir', help="output directory")
+
+    args = parser.parse_args()
+
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+
+    with open(os.path.join(args.outdir, 'run_info.txt'), 'w') as outfile:
+        util.write_dependency_infos(outfile)
+
+    with open(args.input) as infile:
+        input_spec = json.load(infile)
+
+    datasets = risk_predict.read_datasets(input_spec)
+
+    # extract the important info
+    membership_datasets = [ds['omm'] for ds in datasets]
+    survival_datasets = [ds['gs'] for ds in datasets]
+    dataset_labels = [ds['label'] for ds in datasets]
+
+    classifier = cross_dataset_prediction(membership_datasets, survival_datasets, dataset_labels,
+                                          args.outdir)
+
+    clf_filepath = os.path.join(args.outdir, 'miner_alldata_predictor.pkl')
+    with open(clf_filepath, 'wb') as outfile:
+        pickle.dump(classifier, outfile)
