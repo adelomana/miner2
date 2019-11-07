@@ -7,6 +7,14 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn import tree
+from sklearn.externals.six import StringIO
+import pydot
+from graphviz import Source
+
+# xgboost requires different plotting method
+from xgboost import plot_tree
+
 import pickle
 
 from miner2 import risk_predict, survival, util
@@ -16,11 +24,14 @@ DESCRIPTION = """miner-riskclassifier - MINER compute risk classifier.
 MINER Version %s (Git SHA %s)""" % (pkg_version, GIT_SHA.replace('$Id: ', '').replace(' $', ''))
 
 
-
 def cross_dataset_prediction(membership_datasets, survival_datasets, dataset_labels,
-                             outdir):
-    classifier, class0, class1, mean_aucs, mean_hrs, pct_labeled, precision_matrix, recall_matrix = risk_predict.generate_predictor(membership_datasets, survival_datasets, dataset_labels, iterations=30, method='decisionTree', output_directory=outdir, metric='hazard_ratio',separate_results=True,class1_proportion=0.30,test_proportion=0.30,best_state=11,test_only=True)
-
+                             outdir, method):
+    if method == "decisionTree":
+        classifier, class0, class1, mean_aucs, mean_hrs, pct_labeled, precision_matrix, recall_matrix = risk_predict.generate_predictor(membership_datasets, survival_datasets, dataset_labels, iterations=30, method=method, output_directory=outdir, metric='hazard_ratio', separate_results=True, class1_proportion=0.30, test_proportion=0.30, best_state=11, test_only=True)
+    elif method == "xgboost":
+        classifier, class0, class1, mean_aucs, mean_hrs, pct_labeled, precision_matrix, recall_matrix = risk_predict.generate_predictor(membership_datasets, survival_datasets, dataset_labels, iterations=30, method=method, output_directory=outdir, metric='hazard_ratio', separate_results=True, class1_proportion=0.30, test_proportion=0.30, best_state=None)
+    else:
+        raise Exception("unknown predictor type '%s'" % method)
 
     recall = recall_matrix[2]
     precision = precision_matrix[2]
@@ -35,11 +46,31 @@ def cross_dataset_prediction(membership_datasets, survival_datasets, dataset_lab
     return classifier
 
 
+def visualize_decision_tree(classifier, outdir):
+    dot_data = StringIO()
+    tree.export_graphviz(classifier, out_file=dot_data)
+    graph = pydot.graph_from_dot_data(dot_data.getvalue())
+
+    # visualize decision tree
+    graph[0].set_graph_defaults(size = "\"15,15\"")
+    decisionTree = Source(graph[0].to_string())
+    graph[0].write_pdf(os.path.join(outdir, "decisionTreeAUC.pdf"))
+    return decisionTree
+
+
+def visualize_decision_tree_xgboost(classifier, outdir):
+    plot_tree(classifier, num_trees=1)
+    fig = plt.gcf()
+    fig.set_size_inches(50, 10)
+    plt.savefig(os.path.join(outdir, "xgboost_tree_0.pdf"))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=DESCRIPTION)
     parser.add_argument('input', help="input specification file")
     parser.add_argument('outdir', help="output directory")
+    parser.add_argument('--method', default="decisionTree", help="predictor method (decisionTree or xgboost)")
 
     args = parser.parse_args()
 
@@ -60,7 +91,12 @@ if __name__ == '__main__':
     dataset_labels = [ds['label'] for ds in datasets]
 
     classifier = cross_dataset_prediction(membership_datasets, survival_datasets, dataset_labels,
-                                          args.outdir)
+                                          args.outdir, args.method)
+
+    if args.method == 'decisionTree':
+        visualize_decision_tree(classifier, args.outdir)
+    elif args.method == 'xgboost':
+        visualize_decision_tree_xgboost(classifier, args.outdir)
 
     clf_filepath = os.path.join(args.outdir, 'miner_alldata_predictor.pkl')
     with open(clf_filepath, 'wb') as outfile:
