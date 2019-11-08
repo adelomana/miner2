@@ -191,11 +191,10 @@ def get_coregulation_modules(mechanistic_output):
 
 
 def get_regulons(coregulation_modules, min_number_genes=5, freq_threshold=0.333):
+    """TODO: There is still a discrepancy between Python 2 and 3 here"""
     regulons = {}
-    keys = coregulation_modules.keys()
-    for i in range(len(keys)):
-        tf = keys[i]
-        norm_df = __coincidence_matrix(coregulation_modules, key=i, freq_threshold=freq_threshold)
+    for tf in sorted(coregulation_modules.keys()):
+        norm_df = __coincidence_matrix(coregulation_modules, tf, freq_threshold=freq_threshold)
         unmixed = __unmix(norm_df)
         remixed = __remix(norm_df, unmixed)
 
@@ -208,16 +207,15 @@ def get_regulons(coregulation_modules, min_number_genes=5, freq_threshold=0.333)
     return regulons
 
 
-def __coincidence_matrix(coregulation_modules, key, freq_threshold):
-    tf = coregulation_modules.keys()[key]
+def __coincidence_matrix(coregulation_modules, tf, freq_threshold):
     sub_regulons = coregulation_modules[tf]
-    sr_genes = list(set(numpy.hstack([sub_regulons[i] for i in sub_regulons.keys()])))
+    sr_genes = list(set(numpy.hstack([sub_regulons[i] for i in sorted(sub_regulons.keys())])))
 
     template = pandas.DataFrame(numpy.zeros((len(sr_genes), len(sr_genes))))
     template.index = sr_genes
     template.columns = sr_genes
 
-    for key in sub_regulons.keys():
+    for key in sorted(sub_regulons.keys()):
         genes = sub_regulons[key]
         template.loc[genes, genes] += 1
 
