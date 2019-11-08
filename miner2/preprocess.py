@@ -401,7 +401,7 @@ def background_df(expression_data):
 
     low = numpy.percentile(expression_data, 100. / 3, axis=0)
     high = numpy.percentile(expression_data, 200. / 3, axis=0)
-    even_cuts = zip(low, high)
+    even_cuts = list(zip(low, high))
 
     bkgd = expression_data.copy()
     for i in range(bkgd.shape[1]):

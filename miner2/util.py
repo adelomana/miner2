@@ -30,7 +30,7 @@ def split_for_multiprocessing(vector, cores):
     for i in range(remainder):
         stops[cores - remainder + i] = stops[cores - remainder + i] + 1
 
-    return zip(starts, stops)
+    return list(zip(starts, stops))
 
 
 def multiprocess(function, tasks):
@@ -42,10 +42,11 @@ def multiprocess(function, tasks):
 
 
 def condense_output(output):
+    """WW: what is this weird construct doing ???? It seems like it does things very complicated"""
     results = {}
     for i in range(len(output)):
         resultsDict = output[i]
-        keys = resultsDict.keys()
+        keys = list(resultsDict.keys())
         for j in range(len(resultsDict)):
             key = keys[j]
             results[key] = resultsDict[key]

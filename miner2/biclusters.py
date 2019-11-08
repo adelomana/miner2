@@ -9,7 +9,7 @@ def __assign_membership(geneset, background, p=0.05):
     classNeg1 = len(geneset) - numpy.count_nonzero(cluster + 1, axis=0)
     class0 = len(geneset) - numpy.count_nonzero(cluster, axis=0)
     class1 = len(geneset) - numpy.count_nonzero(cluster - 1, axis=0)
-    observations = zip(classNeg1, class0, class1)
+    observations = list(zip(classNeg1, class0, class1))
 
     highpass = stats.binom.ppf(1 - p / 3, len(geneset), 1./3)
     classes = []
