@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>The miner-mechinf tool &#8212; isb-miner 1.1.1 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="The miner-bcmembers tool" href="miner_bcmembers.html" />
+    <link rel="prev" title="The miner-coexpr tool" href="miner_coexpr.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="the-miner-mechinf-tool">
+<h1>The miner-mechinf tool<a class="headerlink" href="#the-miner-mechinf-tool" title="Permalink to this headline">¶</a></h1>
+<p>This utility computes the mechanistic inference.</p>
+<p>You can see the tool’s available options when you enter <code class="docutils literal notranslate"><span class="pre">miner-mechinf</span> <span class="pre">-h</span></code>
+at the command prompt:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: miner-mechinf [-h] [-mc MINCORR]
+                     expfile mapfile coexprdict datadir outdir
+
+miner-mechinf - MINER compute mechanistic inference
+
+positional arguments:
+  expfile               input matrix
+  mapfile               identifier mapping file
+  coexprdict            coexpressionDictionary.json file from miner-coexpr
+  datadir               data directory
+  outdir                output directory
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -mc MINCORR, --mincorr MINCORR
+                        minimum correlation
+</pre></div>
+</div>
+<div class="section" id="parameters-in-detail">
+<h2>Parameters in detail<a class="headerlink" href="#parameters-in-detail" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">miner-mechinf</span></code> expects at least these 5 arguments:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>expfile:</strong> The gene expression file a matrix in csv format.</p></li>
+<li><p><strong>mapfile:</strong> The gene identifier map file.</p></li>
+<li><p><strong>coexprdict:</strong> The path coexpressionDictionary.json file from the miner-coexpr tool</p></li>
+<li><p><strong>datadir:</strong> The path to the data directory</p></li>
+<li><p><strong>outdir:</strong> The path to the output directory</p></li>
+</ul>
+</div></blockquote>
+<p>In addition, you can specify the following optional arguments:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--mincorr</span></code> or <code class="docutils literal notranslate"><span class="pre">--mc</span></code>: the minimum correlation value.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="output-in-detail">
+<h2>Output in detail<a class="headerlink" href="#output-in-detail" title="Permalink to this headline">¶</a></h2>
+<p>After successful completion there will be the following files in the output directory</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">regulons.json</span></code> - use this file in subsequent tools</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coexpressionDictionary_annotated.json</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mechanisticOutput.json</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coexpressionModules_annotated.json</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">regulons_annotated.csv</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coexpressionModules.json</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">regulons_annotated.json</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coregulationModules.json</span></code></p></li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">isb-miner</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="miner_coexpr.html">miner-coexpr</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">miner-mechinf</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#parameters-in-detail">Parameters in detail</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output-in-detail">Output in detail</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="miner_bcmembers.html">miner-bcmembers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miner_subtypes.html">miner-subtypes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miner_survival.html">miner-survival</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miner_causalinf_pre.html">miner-causalinf-pre</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miner_neo.html">miner-neo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miner_causalinf_post.html">miner-causalinf-post</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="miner_coexpr.html" title="previous chapter">The miner-coexpr tool</a></li>
+      <li>Next: <a href="miner_bcmembers.html" title="next chapter">The miner-bcmembers tool</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, Matt Wall.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/miner_mechinf.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
