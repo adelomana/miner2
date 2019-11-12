@@ -19,14 +19,14 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'isb-miner'
+project = 'isb-miner2'
 copyright = '2019, Matt Wall'
 author = 'Matt Wall'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '1.1.1'
+release = '1.0.0'
 
 
 # -- General configuration ---------------------------------------------------
