@@ -15,7 +15,7 @@ setuptools.setup(
     description="A newer version of MINER.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/adelomana/miner2",
+    url="https://github.com/baliga-lab/miner2",
     packages=['miner2'],
     install_requires = setuptools.find_packages(),
     include_package_data=True, package_data=PACKAGE_DATA,
@@ -31,7 +31,7 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
-    scripts=['bin/miner-coexpr', 'bin/miner-mechinf',
-             'bin/miner-bcmembers', 'bin/miner-subtypes',
-             'bin/miner-survival', 'bin/miner-causalinf-pre',
-             'bin/miner-causalinf-post', 'bin/miner-neo'])
+    scripts=['bin/miner2-coexpr', 'bin/miner2-mechinf',
+             'bin/miner2-bcmembers', 'bin/miner2-subtypes',
+             'bin/miner2-survival', 'bin/miner2-causalinf-pre',
+             'bin/miner2-causalinf-post', 'bin/miner2-neo', 'bin/miner2-riskclassifier'])
