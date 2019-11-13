@@ -1,10 +1,10 @@
-The miner-coexpr tool
-=====================
+The miner2-coexpr tool
+======================
 
 This utility generates revised coexpression clusters from a gene expression
 file.
 
-You can see the tool's available options when you enter ``miner-coexpr -h``
+You can see the tool's available options when you enter ``miner2-coexpr -h``
 at the command prompt:
 
 .. highlight:: none
@@ -12,11 +12,11 @@ at the command prompt:
 ::
 
 
-    usage: miner-coexpr [-h] [-mg MINGENES] [-moxs MINOVEREXPSAMP]
-                        [-mx MAXEXCLUSION] [-rs RANDSTATE] [-oxt OVEREXPTHRESH]
-                        expfile mapfile outdir
+    usage: miner2-coexpr [-h] [-mg MINGENES] [-moxs MINOVEREXPSAMP]
+                         [-mx MAXEXCLUSION] [-rs RANDSTATE] [-oxt OVEREXPTHRESH]
+                         expfile mapfile outdir
 
-    miner-coexpr - MINER cluster expression data.
+    miner2-coexpr - MINER cluster expression data.
 
     positional arguments:
       expfile               input matrix
@@ -40,7 +40,7 @@ at the command prompt:
 Parameters in detail
 --------------------
 
-``miner-coexpr`` expects at least these 3 arguments:
+``miner2-coexpr`` expects at least these 3 arguments:
 
   * **expfile:** The gene expression file a matrix in csv format.
   * **mapfile:** The gene identifier map file.

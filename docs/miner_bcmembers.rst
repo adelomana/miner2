@@ -1,19 +1,19 @@
-The miner-bcmembers tool
-=========================
+The miner2-bcmembers tool
+==========================
 
 This utility generates revised coexpression clusters from a gene expression
 file.
 
-You can see the tool's available options when you enter ``miner-bcmembers -h``
+You can see the tool's available options when you enter ``miner2-bcmembers -h``
 at the command prompt:
 
 .. highlight:: none
 
 ::
 
-    usage: miner-bcmembers [-h] expfile mapfile regulons outdir
+    usage: miner2-bcmembers [-h] expfile mapfile regulons outdir
 
-    miner-bcmembers - MINER compute bicluster membership inference
+    miner2-bcmembers - MINER compute bicluster membership inference
 
     positional arguments:
       expfile     input matrix
@@ -28,7 +28,7 @@ at the command prompt:
 Parameters in detail
 --------------------
 
-``miner-bcmembers`` expects at least these 4 arguments:
+``miner2-bcmembers`` expects at least these 4 arguments:
 
   * **expfile:** The gene expression file a matrix in csv format.
   * **mapfile:** The gene identifier map file.

@@ -1,18 +1,18 @@
-The miner-riskclassifier tool
-=============================
+The miner2-riskclassifier tool
+==============================
 
 This utility creates a risk classifier from an input specification
 
-You can see the tool's available options when you enter ``miner-riskclassifier -h``
+You can see the tool's available options when you enter ``miner2-riskclassifier -h``
 at the command prompt:
 
 .. highlight:: none
 
 ::
 
-   usage: miner-riskclassifier [-h] [--method METHOD] input outdir
+   usage: miner2-riskclassifier [-h] [--method METHOD] input outdir
 
-   miner-riskclassifier - MINER compute risk classifier.
+   miner2-riskclassifier - MINER compute risk classifier.
    MINER Version miner2 0.0.8 (Git SHA a24df0a0acf0e33fa457a87f8b3284dd064e71c2)
 
    positional arguments:
@@ -27,7 +27,7 @@ at the command prompt:
 Parameters in detail
 --------------------
 
-``miner-riskclassifier`` expects at least these 2 arguments:
+``miner2-riskclassifier`` expects at least these 2 arguments:
 
   * **input:** an input specification in JSON format
   * **outdir:** The directory where the result files will be placed in.

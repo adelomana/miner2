@@ -13,12 +13,12 @@ from experimental data.
    :maxdepth: 2
    :caption: Contents:
 
-   miner-coexpr <miner_coexpr>
-   miner-mechinf <miner_mechinf>
-   miner-bcmembers <miner_bcmembers>
-   miner-subtypes <miner_subtypes>
-   miner-survival <miner_survival>
-   miner-causalinf-pre <miner_causalinf_pre>
-   miner-neo <miner_neo>
-   miner-causalinf-post <miner_causalinf_post>
-   miner-riskclassifier <miner_riskclassifier>
+   miner2-coexpr <miner_coexpr>
+   miner2-mechinf <miner_mechinf>
+   miner2-bcmembers <miner_bcmembers>
+   miner2-subtypes <miner_subtypes>
+   miner2-survival <miner_survival>
+   miner2-causalinf-pre <miner_causalinf_pre>
+   miner2-neo <miner_neo>
+   miner2-causalinf-post <miner_causalinf_post>
+   miner2-riskclassifier <miner_riskclassifier>
