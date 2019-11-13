@@ -1,0 +1,34 @@
+{
+    "regulons": "prout_mechinf/regulons.json",
+    "primary_survival": "MATTDATA/survival/survivalIA12.csv",
+    "test_survival": "MATTDATA/survival/globalClinTraining.csv",
+    "datasets": [
+        {
+            "label": "MMRF",
+            "exp": "MATTDATA/expression/IA12Zscore.csv",
+            "idmap": "MATTDATA/identifier_mappings.txt",
+            "primary": true
+        },
+        {
+            "label": "GSE24080UAMS",
+            "exp": "MATTDATA/expression/GSE24080UAMSentrezIDlevel.csv",
+            "idmap": "MATTDATA/identifier_mappings.txt",
+            "primary": false,
+            "survival_subset": "GSE24080UAMS"
+        },
+        {
+            "label": "GSE19784HOVON65",
+            "exp": "MATTDATA/expression/GSE19784HOVON65entrezIDlevel.csv",
+            "idmap": "MATTDATA/identifier_mappings.txt",
+            "primary": false,
+            "survival_subset": "HOVON65"
+        },
+        {
+            "label": "EMTAB4032",
+            "exp": "MATTDATA/expression/EMTAB4032entrezIDlevel.csv",
+            "idmap": "MATTDATA/identifier_mappings.txt",
+            "primary": false,
+            "survival_subset": "EMTAB4032"
+        }
+    ]
+}
