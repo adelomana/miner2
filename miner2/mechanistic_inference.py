@@ -266,7 +266,7 @@ def remix(df, frequency_clusters):
         cut = min(0.8, numpy.percentile(sum_slice.loc[cluster] / float(len(cluster)), 90))
         min_genes = max(4, cut * len(cluster))
         keepers = list(slice_df.columns[numpy.where(sum_slice >= min_genes)[0]])
-        keepers = list(set(keepers) | set(cluster))
+        keepers = sorted(set(keepers) | set(cluster))
         final_clusters.append(keepers)
         final_clusters.sort(key=lambda s: -len(s))
     return final_clusters

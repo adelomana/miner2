@@ -87,6 +87,17 @@ class MechinfTest(unittest.TestCase):
         unmixed = mechinf.unmix(norm_df)
         self.assertEquals(ref_unmixed, unmixed)
 
+    def test_remix(self):
+        norm_df = pd.read_csv('testdata/coincidence_matrix-001.csv', index_col=0, header=0)
+        with open('testdata/unmixed-001.json') as infile:
+            unmixed = json.load(infile)
+        with open('testdata/remixed-001.json') as infile:
+            ref_remixed = json.load(infile)
+        remixed = mechinf.remix(norm_df, unmixed)
+        #with open('testdata/remixed-001.json', 'w') as outfile:
+        #    json.dump(remixed, outfile)
+        self.assertEquals(ref_remixed, remixed)
+
 
 if __name__ == '__main__':
     SUITE = []
