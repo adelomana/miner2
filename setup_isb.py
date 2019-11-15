@@ -7,9 +7,11 @@ PACKAGE_DATA = {
     'miner2': ['data/*']
     }
 
+INSTALL_REQUIRES = ['numpy', 'scipy', 'pandas', 'sklearn', 'lifelines',
+                    'matplotlib', 'seaborn', 'xgboost', 'pydot', 'graphviz']
 setuptools.setup(
-    name="miner2",
-    version="0.0.9",
+    name="isb_miner2",
+    version="0.0.2",
     author="Adrian Lopez Garcia de Lomana",
     author_email="alomana@systemsbiology.org",
     description="A newer version of MINER.",
@@ -17,7 +19,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/baliga-lab/miner2",
     packages=['miner2'],
-    install_requires = setuptools.find_packages(),
+    install_requires = INSTALL_REQUIRES,
     include_package_data=True, package_data=PACKAGE_DATA,
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -27,7 +29,7 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 2",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],

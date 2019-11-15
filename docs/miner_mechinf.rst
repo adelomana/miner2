@@ -1,19 +1,19 @@
-The miner-mechinf tool
-======================
+The miner2-mechinf tool
+=======================
 
 This utility computes the mechanistic inference.
 
-You can see the tool's available options when you enter ``miner-mechinf -h``
+You can see the tool's available options when you enter ``miner2-mechinf -h``
 at the command prompt:
 
 .. highlight:: none
 
 ::
 
-    usage: miner-mechinf [-h] [-mc MINCORR]
-                         expfile mapfile coexprdict datadir outdir
+    usage: miner2-mechinf [-h] [-mc MINCORR]
+                          expfile mapfile coexprdict datadir outdir
 
-    miner-mechinf - MINER compute mechanistic inference
+    miner2-mechinf - MINER compute mechanistic inference
 
     positional arguments:
       expfile               input matrix
@@ -31,7 +31,7 @@ at the command prompt:
 Parameters in detail
 --------------------
 
-``miner-mechinf`` expects at least these 5 arguments:
+``miner2-mechinf`` expects at least these 5 arguments:
 
   * **expfile:** The gene expression file a matrix in csv format.
   * **mapfile:** The gene identifier map file.
