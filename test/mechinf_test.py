@@ -80,6 +80,13 @@ class MechinfTest(unittest.TestCase):
         norm_df = mechinf.coincidence_matrix(sub_regulons, 0.333)
         self.assertTrue(ref_norm_df.equals(norm_df))
 
+    def test_unmix(self):
+        norm_df = pd.read_csv('testdata/coincidence_matrix-001.csv', index_col=0, header=0)
+        with open('testdata/unmixed-001.json') as infile:
+            ref_unmixed = json.load(infile)
+        unmixed = mechinf.unmix(norm_df)
+        self.assertEquals(ref_unmixed, unmixed)
+
 
 if __name__ == '__main__':
     SUITE = []

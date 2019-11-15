@@ -238,13 +238,13 @@ def unmix(df, iterations=25, return_all=False):
 
     for iteration in range(iterations):
         sum_df1 = df.sum(axis=1)
-        max_sum = numpy.argmax(sum_df1)
+        max_sum = sum_df1.idxmax()
         hits = numpy.where(df.loc[max_sum] > 0)[0]
         hit_index = list(df.index[hits])
         block = df.loc[hit_index, hit_index]
         block_sum = block.sum(axis=1)
         core_block = list(block_sum.index[numpy.where(block_sum >= numpy.median(block_sum))[0]])
-        remainder = list(set(df.index) - set(core_block))
+        remainder = sorted(set(df.index) - set(core_block))
 
         frequency_clusters.append(core_block)
         if len(remainder) == 0:
