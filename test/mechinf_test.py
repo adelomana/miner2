@@ -60,8 +60,6 @@ class MechinfTest(unittest.TestCase):
         coreg_mods = mechinf.get_coregulation_modules(mechout)
         self.compare_dicts(ref_coreg_mods, coreg_mods)
 
-    # TODO: break down the function to see the differences
-    """
     def test_get_regulons(self):
         with open('testdata/ref_regulons-001.json') as infile:
             ref_regulons = json.load(infile)
@@ -71,7 +69,7 @@ class MechinfTest(unittest.TestCase):
         regulons = mechinf.get_regulons(coreg_mods,
                                         min_number_genes=MIN_REGULON_GENES,
                                         freq_threshold=0.333)
-        self.compare_dicts2(ref_regulons, regulons)"""
+        self.compare_dicts2(ref_regulons, regulons)
 
     def test_coincidence_matrix(self):
         with open('testdata/sub_regulons-001.json') as infile:
