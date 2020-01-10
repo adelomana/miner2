@@ -284,8 +284,9 @@ def convert_dictionary(dic, conversion_table):
         genes = dic[i]
         conv_genes = conversion_table[genes]
         for j in range(len(conv_genes)):
-            if type(conv_genes[j]) is pandas.core.series.Series:
-                conv_genes[j] = conv_genes[j][0]
+            if type(conv_genes[conv_genes.index[j]]) is pandas.core.series.Series:
+                series = conv_genes[conv_genes.index[j]]
+                conv_genes[conv_genes.index[j]] = series[series.index[0]]
         converted[i] = list(conv_genes)
     return converted
 
@@ -300,10 +301,10 @@ def convert_regulons(df, conversionTable):
         if type(tmpReg) is pandas.core.series.Series:
             tmpReg = tmpReg[0]
         regs.append(tmpReg)
-        tmpGene = conversionTable[df.iloc[i, 2]]
-        if type(tmpGene) is pandas.core.series.Series:
-            tmpGene = tmpGene[0]
-        genes.append(tmpGene)
+        tmp_gene = conversionTable[df.iloc[i, 2]]
+        if type(tmp_gene) is pandas.core.series.Series:
+            tmp_gene = tmp_gene[tmp_gene.index[0]]
+        genes.append(tmp_gene)
 
     regulonDfConverted = pandas.DataFrame(numpy.vstack([regIds, regs, genes]).T)
     regulonDfConverted.columns = ["Regulon_ID","Regulator","Gene"]
