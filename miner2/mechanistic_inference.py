@@ -4,6 +4,7 @@ import scipy, scipy.stats
 import multiprocessing
 from pkg_resources import Requirement, resource_filename
 import logging
+import json
 
 import miner2.coexpression
 
@@ -193,10 +194,16 @@ def get_coregulation_modules(mechanistic_output):
 def get_regulons(coregulation_modules, min_number_genes=5, freq_threshold=0.333):
     """TODO: There is still a discrepancy between Python 2 and 3 here"""
     regulons = {}
+    sub_regulons = coregulation_modules['ENSG00000005889']
+    norm_df = coincidence_matrix(sub_regulons, 0.333)
+    with open('sub_regulons-001.json', 'w') as outfile:
+        json.dump(sub_regulons, outfile)
+    norm_df.to_csv('coincidence_matrix-001.csv')
+
     for tf in sorted(coregulation_modules.keys()):
-        norm_df = __coincidence_matrix(coregulation_modules, tf, freq_threshold=freq_threshold)
-        unmixed = __unmix(norm_df)
-        remixed = __remix(norm_df, unmixed)
+        norm_df = coincidence_matrix(coregulation_modules[tf], freq_threshold)
+        unmixed = unmix(norm_df)
+        remixed = remix(norm_df, unmixed)
 
         if len(remixed) > 0:
             for cluster in remixed:
@@ -207,9 +214,8 @@ def get_regulons(coregulation_modules, min_number_genes=5, freq_threshold=0.333)
     return regulons
 
 
-def __coincidence_matrix(coregulation_modules, tf, freq_threshold):
-    sub_regulons = coregulation_modules[tf]
-    sr_genes = list(set(numpy.hstack([sub_regulons[i] for i in sorted(sub_regulons.keys())])))
+def coincidence_matrix(sub_regulons, freq_threshold):
+    sr_genes = sorted(set(numpy.hstack([sub_regulons[i] for i in sorted(sub_regulons.keys())])))
 
     template = pandas.DataFrame(numpy.zeros((len(sr_genes), len(sr_genes))))
     template.index = sr_genes
@@ -227,18 +233,18 @@ def __coincidence_matrix(coregulation_modules, tf, freq_threshold):
     return norm_df
 
 
-def __unmix(df, iterations=25, return_all=False):
+def unmix(df, iterations=25, return_all=False):
     frequency_clusters = []
 
     for iteration in range(iterations):
         sum_df1 = df.sum(axis=1)
-        max_sum = numpy.argmax(sum_df1)
+        max_sum = sum_df1.idxmax()
         hits = numpy.where(df.loc[max_sum] > 0)[0]
         hit_index = list(df.index[hits])
         block = df.loc[hit_index, hit_index]
         block_sum = block.sum(axis=1)
         core_block = list(block_sum.index[numpy.where(block_sum >= numpy.median(block_sum))[0]])
-        remainder = list(set(df.index) - set(core_block))
+        remainder = sorted(set(df.index) - set(core_block))
 
         frequency_clusters.append(core_block)
         if len(remainder) == 0:
@@ -252,7 +258,7 @@ def __unmix(df, iterations=25, return_all=False):
     return frequency_clusters
 
 
-def __remix(df, frequency_clusters):
+def remix(df, frequency_clusters):
     final_clusters = []
     for cluster in frequency_clusters:
         slice_df = df.loc[cluster,:]
@@ -260,7 +266,7 @@ def __remix(df, frequency_clusters):
         cut = min(0.8, numpy.percentile(sum_slice.loc[cluster] / float(len(cluster)), 90))
         min_genes = max(4, cut * len(cluster))
         keepers = list(slice_df.columns[numpy.where(sum_slice >= min_genes)[0]])
-        keepers = list(set(keepers) | set(cluster))
+        keepers = sorted(set(keepers) | set(cluster))
         final_clusters.append(keepers)
         final_clusters.sort(key=lambda s: -len(s))
     return final_clusters

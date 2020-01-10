@@ -71,6 +71,31 @@ class MechinfTest(unittest.TestCase):
                                         freq_threshold=0.333)
         self.compare_dicts2(ref_regulons, regulons)
 
+    def test_coincidence_matrix(self):
+        with open('testdata/sub_regulons-001.json') as infile:
+            sub_regulons = json.load(infile)
+        ref_norm_df = pd.read_csv('testdata/coincidence_matrix-001.csv', index_col=0, header=0)
+        norm_df = mechinf.coincidence_matrix(sub_regulons, 0.333)
+        self.assertTrue(ref_norm_df.equals(norm_df))
+
+    def test_unmix(self):
+        norm_df = pd.read_csv('testdata/coincidence_matrix-001.csv', index_col=0, header=0)
+        with open('testdata/unmixed-001.json') as infile:
+            ref_unmixed = json.load(infile)
+        unmixed = mechinf.unmix(norm_df)
+        self.assertEquals(ref_unmixed, unmixed)
+
+    def test_remix(self):
+        norm_df = pd.read_csv('testdata/coincidence_matrix-001.csv', index_col=0, header=0)
+        with open('testdata/unmixed-001.json') as infile:
+            unmixed = json.load(infile)
+        with open('testdata/remixed-001.json') as infile:
+            ref_remixed = json.load(infile)
+        remixed = mechinf.remix(norm_df, unmixed)
+        #with open('testdata/remixed-001.json', 'w') as outfile:
+        #    json.dump(remixed, outfile)
+        self.assertEquals(ref_remixed, remixed)
+
 
 if __name__ == '__main__':
     SUITE = []
